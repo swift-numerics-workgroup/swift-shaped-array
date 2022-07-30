@@ -18,47 +18,27 @@ import Swift
 // TensorBuffer
 //===------------------------------------------------------------------------------------------===//
 
-/// `TensorBuffer` is the internal storage of `ShapedArray`. This buffer has two modes of storage:
-/// `native` and `tensorFlow`. In `native` mode, the buffer object stores a pointer to contiguous
-/// scalars; in `tensorFlow` mode, the buffer object stores a `TF_Tensor*` and bridges to
-/// TensorFlow. In either mode, the buffer object owns the memory and will deallocate it on
-/// `deinit`.
+/// `ShapedArrayBuffer` is the internal storage of `ShapedArray`.
+/// Currently only supports a `native` mode; the buffer object stores a pointer to contiguous
+/// scalars. The buffer object owns the memory and will deallocate it on `deinit`.
 @usableFromInline
-internal class TensorBuffer<Scalar> {
-  /// Cached element count of the underlying buffer.
-  let count: Int
-
-  init(count: Int) { self.count = count }
-
-  func withUnsafeBufferPointer<R>(
-    _ body: (UnsafeBufferPointer<Scalar>) throws -> R
-  ) rethrows -> R {
-    fatalError("withUnsafeBufferPointer unimplemented because TensorBuffer is abstract")
-  }
-
-  func withUnsafeMutableBufferPointer<R>(
-    _ body: (inout UnsafeMutableBufferPointer<Scalar>) throws -> R
-  ) rethrows -> R {
-    fatalError("withUnsafeMutableBufferPointer unimplemented because TensorBuffer is abstract")
-  }
-}
-
-// TensorBuffer backed by a native swift array.
-internal class ArrayTensorBuffer<Scalar>: TensorBuffer<Scalar> {
+internal class ShapedArrayBuffer<Scalar> {
   var array: [Scalar]
+  var count: Int {
+    array.count
+  }
 
   init(_ array: __owned [Scalar]) {
     self.array = array
-    super.init(count: array.count)
   }
 
-  override func withUnsafeBufferPointer<R>(
+  func withUnsafeBufferPointer<R>(
     _ body: (UnsafeBufferPointer<Scalar>) throws -> R
   ) rethrows -> R {
     return try array.withUnsafeBufferPointer(body)
   }
 
-  override func withUnsafeMutableBufferPointer<R>(
+  func withUnsafeMutableBufferPointer<R>(
     _ body: (inout UnsafeMutableBufferPointer<Scalar>) throws -> R
   ) rethrows -> R {
     return try array.withUnsafeMutableBufferPointer(body)
@@ -361,23 +341,23 @@ where Element: _ShapedArrayProtocol, Element == Element.Element {
 //===------------------------------------------------------------------------------------------===//
 
 /// `ShapedArray` is a multi-dimensional array. It has a shape, which has type `[Int]` and defines
-/// the array dimensions, and uses a `TensorBuffer` internally as storage.
+/// the array dimensions, and uses a `ShapedArrayBuffer` internally as storage.
 @frozen
 public struct ShapedArray<Scalar>: _ShapedArrayProtocol {
   /// Contiguous memory storing scalars.
-  internal var buffer: TensorBuffer<Scalar>
+  internal var buffer: ShapedArrayBuffer<Scalar>
 
   /// The dimensions of the array.
   public private(set) var shape: [Int]
 
-  /// Creates a `ShapedArray` from a `TensorBuffer` and a shape.
-  internal init(buffer: __owned TensorBuffer<Scalar>, shape: __owned [Int]) {
+  /// Creates a `ShapedArray` from a `ShapedArrayBuffer` and a shape.
+  internal init(buffer: __owned ShapedArrayBuffer<Scalar>, shape: __owned [Int]) {
     precondition(
       buffer.count == shape.reduce(1, *),
       "The scalar count of the buffer does not match the shape.")
     self.buffer = buffer
     self.shape = shape
-    debugLog("Done initializing ShapedArray from TensorBuffer.")
+    debugLog("Done initializing ShapedArray from ShapedArrayBuffer.")
   }
 }
 
@@ -387,7 +367,7 @@ extension ShapedArray {
     let oldBuffer = buffer
     debugLog("Unique reference check")
     buffer = oldBuffer.withUnsafeBufferPointer { oldBufferPointer in
-      ArrayTensorBuffer<Scalar>([Scalar](oldBufferPointer))
+      ShapedArrayBuffer<Scalar>([Scalar](oldBufferPointer))
     }
   }
 }
@@ -413,7 +393,7 @@ extension ShapedArray {
   /// - Precondition: The number of scalars must equal the product of the dimensions of the shape.
   public init(shape: __owned [Int], scalars: __owned [Scalar]) {
     precondition(shape.reduce(1, *) == scalars.count, "Scalar count mismatch.")
-    let buffer = ArrayTensorBuffer<Scalar>(scalars)
+    let buffer = ShapedArrayBuffer<Scalar>(scalars)
     self.init(buffer: buffer, shape: shape)
   }
 
@@ -421,7 +401,7 @@ extension ShapedArray {
   /// - Precondition: The number of scalars must equal the product of the dimensions of the shape.
   public init<S: Sequence>(shape: __owned [Int], scalars: __shared S) where S.Element == Scalar {
     let scalarCount = shape.reduce(1, *)
-    let buffer = ArrayTensorBuffer<Scalar>([Scalar](scalars))
+    let buffer = ShapedArrayBuffer<Scalar>([Scalar](scalars))
     precondition(
       buffer.count == scalarCount,
       "The sequence has fewer elements than needed by the shape.")
@@ -430,17 +410,7 @@ extension ShapedArray {
 
   /// Creates a `ShapedArray` from a scalar value.
   public init(_ scalar: __owned Scalar) {
-    self.init(buffer: ArrayTensorBuffer([scalar]), shape: [])
-  }
-
-  /// Creates a `ShapedArray` with the specified shape and a single, repeated scalar value.
-  /// - Parameters:
-  ///   - shape: The shape of the `ShapedArray`.
-  ///   - repeatedValue: The scalar value to repeat.
-  @inlinable
-  @available(*, deprecated, renamed: "init(repeating:shape:)")
-  public init(shape: __owned [Int], repeating repeatedValue: __owned Scalar) {
-    self.init(repeating: repeatedValue, shape: shape)
+    self.init(buffer: ShapedArrayBuffer([scalar]), shape: [])
   }
 
   /// Creates a `ShapedArray` with the specified shape and a single, repeated scalar value.
@@ -449,7 +419,7 @@ extension ShapedArray {
   ///   - shape: The shape of the `ShapedArray`.
   public init(repeating repeatedValue: __owned Scalar, shape: __owned [Int]) {
     let scalarCount = shape.reduce(1, *)
-    let buffer = ArrayTensorBuffer<Scalar>(Array(repeating: repeatedValue, count: scalarCount))
+    let buffer = ShapedArrayBuffer<Scalar>(Array(repeating: repeatedValue, count: scalarCount))
     self.init(buffer: buffer, shape: shape)
   }
 }
@@ -552,14 +522,19 @@ extension ShapedArray {
 }
 
 // Array literal conversion.
-extension ShapedArray: ExpressibleByArrayLiteral where Scalar: TensorFlowScalar {
-  public typealias ArrayLiteralElement = _TensorElementLiteral<Scalar>
-  @inlinable
-  public init(arrayLiteral elements: _TensorElementLiteral<Scalar>...) {
-    precondition(!elements.isEmpty, "Cannot create a 'ShapedArray' with no elements.")
-    self = Tensor<Scalar>(_tensorElementLiterals: elements).array
-  }
-}
+// TODO: ExpressibleByArrayLiteral: This will need to be revisited.
+// Path forward looks like:
+// 1. Copy `_TensorElementLiteral` as `_ShapedArrayElementLiteral`.
+// 2. Implement conformances equivalent to those of _TensorElementLiteral but
+//    using ShapedArray affordances. Avoid tensorflow.
+// extension ShapedArray: ExpressibleByArrayLiteral where Scalar: TensorFlowScalar {
+//   public typealias ArrayLiteralElement = _TensorElementLiteral<Scalar>
+//   @inlinable
+//   public init(arrayLiteral elements: _TensorElementLiteral<Scalar>...) {
+//     precondition(!elements.isEmpty, "Cannot create a 'ShapedArray' with no elements.")
+//     self = Tensor<Scalar>(_tensorElementLiterals: elements).array
+//   }
+// }
 
 // Equatable conformance.
 extension ShapedArray: Equatable where Scalar: Equatable {
@@ -750,16 +725,6 @@ extension ShapedArraySlice {
   /// - Parameters:
   ///   - repeatedValue: The scalar value to repeat.
   ///   - shape: The shape of the `ShapedArraySlice`.
-  @inlinable
-  @available(*, deprecated, renamed: "init(repeating:shape:)")
-  public init(shape: __owned [Int], repeating repeatedValue: __owned Scalar) {
-    self.init(repeating: repeatedValue, shape: shape)
-  }
-
-  /// Creates a `ShapedArraySlice` with the specified shape and a single, repeated scalar value.
-  /// - Parameters:
-  ///   - repeatedValue: The scalar value to repeat.
-  ///   - shape: The shape of the `ShapedArraySlice`.
   public init(repeating repeatedValue: __owned Scalar, shape: __owned [Int]) {
     self.init(base: ShapedArray(repeating: repeatedValue, shape: shape))
   }
@@ -907,22 +872,19 @@ extension ShapedArraySlice: RandomAccessCollection, MutableCollection {
   }
 }
 
-// Tensor conversion.
-extension ShapedArraySlice where Scalar: TensorFlowScalar {
-  public init(_ tensor: __shared Tensor<Scalar>) {
-    self.init(base: tensor.array)
-  }
-}
-
 // Array literal conversion.
-extension ShapedArraySlice: ExpressibleByArrayLiteral where Scalar: TensorFlowScalar {
-  public typealias ArrayLiteralElement = _TensorElementLiteral<Scalar>
-  @inlinable
-  public init(arrayLiteral elements: _TensorElementLiteral<Scalar>...) {
-    precondition(!elements.isEmpty, "Cannot create a 'ShapedArraySlice' with no elements.")
-    self.init(base: Tensor(_tensorElementLiterals: elements).array)
-  }
-}
+// Array literal conversion.
+// TODO: ExpressibleByArrayLiteral: This will need to be revisited.
+// This will be trivial to implement once `ShapedArray: ExpressibleByArrayLiteral`
+// is implemented.
+// extension ShapedArraySlice: ExpressibleByArrayLiteral where Scalar: TensorFlowScalar {
+//   public typealias ArrayLiteralElement = _TensorElementLiteral<Scalar>
+//   @inlinable
+//   public init(arrayLiteral elements: _TensorElementLiteral<Scalar>...) {
+//     precondition(!elements.isEmpty, "Cannot create a 'ShapedArraySlice' with no elements.")
+//     self.init(base: Tensor(_tensorElementLiterals: elements).array)
+//   }
+// }
 
 // Equatable conformance.
 extension ShapedArraySlice: Equatable where Scalar: Equatable {
