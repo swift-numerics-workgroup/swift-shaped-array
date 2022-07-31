@@ -15,37 +15,6 @@
 import Swift
 
 //===------------------------------------------------------------------------------------------===//
-// TensorBuffer
-//===------------------------------------------------------------------------------------------===//
-
-/// `ShapedArrayBuffer` is the internal storage of `ShapedArray`.
-/// Currently only supports a `native` mode; the buffer object stores a pointer to contiguous
-/// scalars. The buffer object owns the memory and will deallocate it on `deinit`.
-@usableFromInline
-internal class ShapedArrayBuffer<Scalar> {
-  var array: [Scalar]
-  var count: Int {
-    array.count
-  }
-
-  init(_ array: __owned [Scalar]) {
-    self.array = array
-  }
-
-  func withUnsafeBufferPointer<R>(
-    _ body: (UnsafeBufferPointer<Scalar>) throws -> R
-  ) rethrows -> R {
-    return try array.withUnsafeBufferPointer(body)
-  }
-
-  func withUnsafeMutableBufferPointer<R>(
-    _ body: (inout UnsafeMutableBufferPointer<Scalar>) throws -> R
-  ) rethrows -> R {
-    return try array.withUnsafeMutableBufferPointer(body)
-  }
-}
-
-//===------------------------------------------------------------------------------------------===//
 // ShapedArrayProtocol: The protocol unifying ShapedArray and ShapedArraySlice.
 //===------------------------------------------------------------------------------------------===//
 
@@ -345,30 +314,19 @@ where Element: _ShapedArrayProtocol, Element == Element.Element {
 @frozen
 public struct ShapedArray<Scalar>: _ShapedArrayProtocol {
   /// Contiguous memory storing scalars.
-  internal var buffer: ShapedArrayBuffer<Scalar>
+  internal var buffer: [Scalar]
 
   /// The dimensions of the array.
   public private(set) var shape: [Int]
 
   /// Creates a `ShapedArray` from a `ShapedArrayBuffer` and a shape.
-  internal init(buffer: __owned ShapedArrayBuffer<Scalar>, shape: __owned [Int]) {
+  internal init(buffer: __owned [Scalar], shape: __owned [Int]) {
     precondition(
       buffer.count == shape.reduce(1, *),
       "The scalar count of the buffer does not match the shape.")
     self.buffer = buffer
     self.shape = shape
     debugLog("Done initializing ShapedArray from ShapedArrayBuffer.")
-  }
-}
-
-extension ShapedArray {
-  fileprivate mutating func ensureUniquelyReferenced() {
-    if isKnownUniquelyReferenced(&buffer) { return }
-    let oldBuffer = buffer
-    debugLog("Unique reference check")
-    buffer = oldBuffer.withUnsafeBufferPointer { oldBufferPointer in
-      ShapedArrayBuffer<Scalar>([Scalar](oldBufferPointer))
-    }
   }
 }
 
@@ -393,15 +351,14 @@ extension ShapedArray {
   /// - Precondition: The number of scalars must equal the product of the dimensions of the shape.
   public init(shape: __owned [Int], scalars: __owned [Scalar]) {
     precondition(shape.reduce(1, *) == scalars.count, "Scalar count mismatch.")
-    let buffer = ShapedArrayBuffer<Scalar>(scalars)
-    self.init(buffer: buffer, shape: shape)
+    self.init(buffer: scalars, shape: shape)
   }
 
   /// Creates a `ShapedArray` with the specified shape and sequence of scalars in row-major order.
   /// - Precondition: The number of scalars must equal the product of the dimensions of the shape.
   public init<S: Sequence>(shape: __owned [Int], scalars: __shared S) where S.Element == Scalar {
     let scalarCount = shape.reduce(1, *)
-    let buffer = ShapedArrayBuffer<Scalar>([Scalar](scalars))
+    let buffer = [Scalar](scalars)
     precondition(
       buffer.count == scalarCount,
       "The sequence has fewer elements than needed by the shape.")
@@ -410,7 +367,7 @@ extension ShapedArray {
 
   /// Creates a `ShapedArray` from a scalar value.
   public init(_ scalar: __owned Scalar) {
-    self.init(buffer: ShapedArrayBuffer([scalar]), shape: [])
+    self.init(buffer: [scalar], shape: [])
   }
 
   /// Creates a `ShapedArray` with the specified shape and a single, repeated scalar value.
@@ -419,7 +376,7 @@ extension ShapedArray {
   ///   - shape: The shape of the `ShapedArray`.
   public init(repeating repeatedValue: __owned Scalar, shape: __owned [Int]) {
     let scalarCount = shape.reduce(1, *)
-    let buffer = ShapedArrayBuffer<Scalar>(Array(repeating: repeatedValue, count: scalarCount))
+    let buffer = Array(repeating: repeatedValue, count: scalarCount)
     self.init(buffer: buffer, shape: shape)
   }
 }
@@ -516,7 +473,6 @@ extension ShapedArray {
   public mutating func withUnsafeMutableBufferPointer<Result>(
     _ body: (inout UnsafeMutableBufferPointer<Scalar>) throws -> Result
   ) rethrows -> Result {
-    ensureUniquelyReferenced()
     return try buffer.withUnsafeMutableBufferPointer { ptr in try body(&ptr) }
   }
 }
