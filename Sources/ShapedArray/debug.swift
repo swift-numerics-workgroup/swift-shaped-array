@@ -1,5 +1,5 @@
 public func debugLog(_ str: String) {
-    #if DEBUG
+#if DEBUG
     print(str)
-    #endif
+#endif
 }

@@ -23,8 +23,10 @@ public protocol _ShapedArrayProtocol: RandomAccessCollection, MutableCollection 
     
     /// The number of dimensions of the array.
     var rank: Int { get }
-    /// The shape of the array.
+
+    /// An integer array in which each element represents the size of the corresponding dimension.
     var shape: [Int] { get }
+    
     /// The total number of scalars in the array.
     var scalarCount: Int { get }
     
