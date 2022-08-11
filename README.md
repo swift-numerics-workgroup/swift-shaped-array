@@ -1,1 +1,1 @@
-# shaped-array
+# Swift ShapedArray
