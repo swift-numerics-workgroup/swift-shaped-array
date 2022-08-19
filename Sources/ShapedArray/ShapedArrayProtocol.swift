@@ -26,7 +26,7 @@ public protocol _ShapedArrayProtocol: RandomAccessCollection, MutableCollection 
 
     /// An integer array in which each element represents the size of the corresponding dimension.
     var shape: [Int] { get }
-    
+
     /// The total number of scalars in the array.
     var scalarCount: Int { get }
     
