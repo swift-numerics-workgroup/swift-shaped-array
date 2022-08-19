@@ -1,12 +1,12 @@
 //
-//  File.swift
+//  BasicOperations.swift
 //  
 //
 //  Created by Jaap Wijnen on 10/08/2022.
 //
 
 extension ShapedArray {
-    static func pack(_ values: [ShapedArray], axis: Int = 0) -> ShapedArray {
+    internal static func pack(_ values: [ShapedArray], axis: Int = 0) -> ShapedArray {
 
         precondition(!values.isEmpty, "Cannot pack empty array of ShapedArrays.")
         let shape = values.first!.shape
