@@ -29,7 +29,6 @@ public struct ShapedArray<Scalar>: _ShapedArrayProtocol {
             "The scalar count of the buffer does not match the shape.")
         self.buffer = buffer
         self.shape = shape
-        debugLog("Done initializing ShapedArray from ShapedArrayBuffer.")
     }
 }
 
@@ -46,7 +45,6 @@ extension ShapedArray {
     
     /// Creates a `ShapedArray` with the same shape and scalars as the specified instance.
     public init(_ other: ShapedArray) {
-        debugLog("Initializing from another ShapedArray.")
         self.init(buffer: other.buffer, shape: other.shape)
     }
     
