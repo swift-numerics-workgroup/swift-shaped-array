@@ -7,11 +7,11 @@
 
 extension ShapedArray {
     internal static func pack(_ values: [ShapedArray], axis: Int = 0) -> ShapedArray {
-
         precondition(!values.isEmpty, "Cannot pack empty array of ShapedArrays.")
         let shape = values.first!.shape
         precondition(axis >= 0 && axis <= shape.count, "axis = \(axis) is not within [0, \(shape.count)]")
-        assert(!values.map { $0.shape }.contains { $0 != shape }, "Shapes of all inputs must match: \(shape).")
+        // we use assert here for increased performance in release mode.
+        assert(!values.contains(where: { $0.shape != shape }), "Shapes of all inputs must match: \(shape).")
         let scalarCount = values.first!.scalarCount
         let totalScalars = scalarCount * values.count
         
