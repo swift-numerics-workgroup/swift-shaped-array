@@ -65,14 +65,14 @@ final class ShapedArrayTests: XCTestCase {
         XCTAssertEqual(slice1D.scalars, Array(stride(from: 3.0, to: 5, by: 1)))
     }
     
-    func testPack() {
+    func testStacking() {
         let x: ShapedArray<Double> = ShapedArray(shape: [2, 3], scalars: Array(stride(from: 0.0, to: 6.0, by: 1.0)))
         let y: ShapedArray<Double> = ShapedArray(shape: [2, 3], scalars: Array(stride(from: 6.0, to: 12.0, by: 1.0)))
         let z: ShapedArray<Double> = ShapedArray(shape: [2, 3], scalars: Array(stride(from: 12.0, to: 18.0, by: 1.0)))
         
-        let p1 = ShapedArray.pack([x,y,z], axis: 0)
-        let p2 = ShapedArray.pack([x,y,z], axis: 1)
-        let p3 = ShapedArray.pack([x,y,z], axis: 2)
+        let p1 = ShapedArray(stacking: [x,y,z], alongAxis: 0)
+        let p2 = ShapedArray(stacking: [x,y,z], alongAxis: 1)
+        let p3 = ShapedArray(stacking: [x,y,z], alongAxis: 2)
         
         /// Test shapes
         XCTAssertEqual(p1.shape, [3, 2, 3])
