@@ -47,14 +47,14 @@ extension _ShapedArrayElementLiteral: ExpressibleByStringLiteral where Scalar: E
 
 extension _ShapedArrayElementLiteral: ExpressibleByArrayLiteral {
     public init(arrayLiteral elements: _ShapedArrayElementLiteral<Scalar>...) {
-        self.shapedArray = .pack(elements.map { $0.shapedArray })
+        self.shapedArray = .init(stacking: elements.map { $0.shapedArray })
     }
 }
 
 extension ShapedArray: ExpressibleByArrayLiteral {
     public init(arrayLiteral elements: _ShapedArrayElementLiteral<Scalar>...) {
         precondition(!elements.isEmpty, "Cannot create a 'ShapedArray' with no elements.")
-        self = .pack(elements.map { $0.shapedArray })
+        self = .init(stacking: elements.map { $0.shapedArray })
     }
 }
 
