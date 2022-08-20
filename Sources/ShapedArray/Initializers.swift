@@ -37,7 +37,7 @@ extension ShapedArray {
     ///
     /// - Returns: The stacked ShapedArray.
     @inlinable
-    public init(stacking arrays: [ShapedArray<Scalar>], alongAxis axis: Int = 0) {
+    public init<S>(stacking arrays: [S], alongAxis axis: Int = 0) where S: _ShapedArrayProtocol, S.Scalar == Scalar {
         precondition(!arrays.isEmpty, "Cannot pack empty array of ShapedArrays.")
         let shape = arrays.first!.shape
         precondition(axis >= 0 && axis <= shape.count, "axis = \(axis) is not within [0, \(shape.count)]")
