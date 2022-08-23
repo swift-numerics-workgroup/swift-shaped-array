@@ -1,4 +1,4 @@
-// Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+// Copyright 2021 The TensorFlow Authors. All Rights Reserved.
 // Modified 2022 The Swift Numerics Workgroup.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
