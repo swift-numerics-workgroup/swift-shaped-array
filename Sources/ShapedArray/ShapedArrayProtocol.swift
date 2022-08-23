@@ -1,4 +1,5 @@
-// Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+// Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+// Modified 2022 The Swift Numerics Workgroup.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +24,10 @@ public protocol _ShapedArrayProtocol: RandomAccessCollection, MutableCollection 
     
     /// The number of dimensions of the array.
     var rank: Int { get }
-    /// The shape of the array.
+
+    /// An integer array in which each element represents the size of the corresponding dimension.
     var shape: [Int] { get }
+
     /// The total number of scalars in the array.
     var scalarCount: Int { get }
     

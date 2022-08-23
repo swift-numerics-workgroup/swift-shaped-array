@@ -1,4 +1,5 @@
-// Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+// Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+// Modified 2022 The Swift Numerics Workgroup.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +30,6 @@ public struct ShapedArray<Scalar>: _ShapedArrayProtocol {
             "The scalar count of the buffer does not match the shape.")
         self.buffer = buffer
         self.shape = shape
-        debugLog("Done initializing ShapedArray from ShapedArrayBuffer.")
     }
 }
 
@@ -46,7 +46,6 @@ extension ShapedArray {
     
     /// Creates a `ShapedArray` with the same shape and scalars as the specified instance.
     public init(_ other: ShapedArray) {
-        debugLog("Initializing from another ShapedArray.")
         self.init(buffer: other.buffer, shape: other.shape)
     }
     
