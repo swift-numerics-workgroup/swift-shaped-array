@@ -13,6 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
+import _Differentiation
+
 /// `ShapedArray` is a multi-dimensional array. It has a shape, which has type `[Int]` and defines
 /// the array dimensions, and uses a `ShapedArrayBuffer` internally as storage.
 @frozen
@@ -21,8 +24,8 @@ public struct ShapedArray<Scalar>: _ShapedArrayProtocol {
     internal var buffer: [Scalar]
     
     /// The dimensions of the array.
-    public private(set) var shape: [Int]
-    
+    @noDerivative public private(set) var shape: [Int]
+        
     /// Creates a `ShapedArray` from a `ShapedArrayBuffer` and a shape.
     internal init(buffer: __owned [Scalar], shape: __owned [Int]) {
         precondition(
@@ -255,3 +258,70 @@ extension ShapedArray: Codable where Scalar: Codable {
         try container.encode(scalars, forKey: .scalars)
     }
 }
+
+
+// Additive Arithmetic Conformance
+
+extension ShapedArray: AdditiveArithmetic where Scalar: Numeric {
+    
+    //scalar zero tensor
+    public static var zero: ShapedArray {
+        let zero = ShapedArray(0)
+        return zero
+    }
+    
+    @inlinable
+    @differentiable(reverse where Scalar: ShapedArrayFloatingPoint)
+    public static func + (lhs: ShapedArray, rhs: ShapedArray) -> ShapedArray {
+        if lhs == ShapedArray(0) {
+            return rhs
+        } else if rhs == ShapedArray(0) {
+            return lhs
+        }
+        return ShapedArray(0) //ShapedArray.add(lhs, rhs)
+    }
+    
+    @inlinable
+    @differentiable(reverse where Scalar: ShapedArrayFloatingPoint)
+    public static func - (lhs: ShapedArray, rhs: ShapedArray) -> ShapedArray {
+        if lhs == ShapedArray(0) {
+            return rhs
+        } else if rhs == ShapedArray(0) {
+            return lhs
+        }
+        return ShapedArray(0) //ShapedArray.sub(lhs, rhs)
+    }
+}
+
+/* This will work when BroadcastingPullback is implemented
+extension ShapedArray where Scalar: ShapedArrayFloatingPoint {
+    @inlinable
+    @derivative(of: +)
+    static func _vjpAdd(lhs: ShapedArray, rhs: ShapedArray) -> (
+        value: ShapedArray, pullback: (ShapedArray) -> (ShapedArray, ShapedArray)
+    ) {
+        (
+            lhs + rhs,
+            { [broadcastPb = BroadcastingPullback(lhs, rhs)] v in
+              return broadcastPb(v, v)
+            }
+        )
+    }
+    
+    @inlinable
+    @derivative(of: -)
+    static func _vjpSub(lhs: ShapedArray, rhs: ShapedArray) -> (
+        value: ShapedArray, pullback: (ShapedArray) -> (ShapedArray, ShapedArray)
+    ) {
+        (
+            lhs - rhs,
+            { [broadcastPb = BroadcastingPullback(lhs, rhs)] v in
+              return broadcastPb(v, -v)
+            }
+        )
+    }
+}*/
+
+// Differentiable Conformance
+
+extension ShapedArray: Differentiable where Scalar: ShapedArrayFloatingPoint {}
