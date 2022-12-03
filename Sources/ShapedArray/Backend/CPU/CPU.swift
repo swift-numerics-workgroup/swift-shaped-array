@@ -32,8 +32,8 @@ final class CPU {
         switch T.self {
         case is Float.Type:
             var ret = ShapedArray<T>(repeating: 0.0, shape: x.shape)
-            var ptrToSrc: UnsafePointer<Float> = helperToPointer(src: x)
-            var ptrToDst: UnsafeMutablePointer<Float> = helperToMutatingPointer(dst: &ret)
+            var ptrToSrc = helperToPointer(src: x) as! UnsafePointer<Float>
+            var ptrToDst = helperToMutatingPointer(dst: &ret) as! UnsafeMutablePointer<Float>
             
             #if canImport(Accelerate)
             vvsqrtf(ptrToDst, ptrToSrc, [Int32(x.count)])
@@ -44,8 +44,8 @@ final class CPU {
             return ret
         case is Double.Type:
             var ret = ShapedArray<T>(repeating: 0.0, shape: x.shape)
-            var ptrToSrc: UnsafePointer<Double> = helperToPointer(src: x)
-            var ptrToDst: UnsafeMutablePointer<Double> = helperToMutatingPointer(dst: &ret)
+            var ptrToSrc = helperToPointer(src: x) as! UnsafePointer<Double>
+            var ptrToDst = helperToMutatingPointer(dst: &ret) as! UnsafeMutablePointer<Double>
             
             #if canImport(Accelerate)
             vvsqrt(ptrToDst, ptrToSrc, [Int32(x.count)])
@@ -64,8 +64,8 @@ final class CPU {
         switch T.self {
         case is Float.Type:
             var ret = ShapedArray<T>(repeating: 0.0, shape: x.shape)
-            var ptrToSrc: UnsafePointer<Float> = helperToPointer(src: x)
-            var ptrToDst: UnsafeMutablePointer<Float> = helperToMutatingPointer(dst: &ret)
+            var ptrToSrc = helperToPointer(src: x) as! UnsafePointer<Float>
+            var ptrToDst = helperToMutatingPointer(dst: &ret) as! UnsafeMutablePointer<Float>
             
             #if canImport(Accelerate)
             vvcosf(ptrToDst, ptrToSrc, [Int32(x.count)])
@@ -76,8 +76,8 @@ final class CPU {
             return ret
         case is Double.Type:
             var ret = ShapedArray<T>(repeating: 0.0, shape: x.shape)
-            var ptrToSrc: UnsafePointer<Double> = helperToPointer(src: x)
-            var ptrToDst: UnsafeMutablePointer<Double> = helperToMutatingPointer(dst: &ret)
+            var ptrToSrc = helperToPointer(src: x) as! UnsafePointer<Double>
+            var ptrToDst = helperToMutatingPointer(dst: &ret) as! UnsafeMutablePointer<Double>
             
             #if canImport(Accelerate)
             vvcos(ptrToDst, ptrToSrc, [Int32(x.count)])
@@ -91,14 +91,14 @@ final class CPU {
         }
     }
     
-    static func add<T: Numeric & ShapedArrayFloatingPoint>(_ lhs: ShapedArray<T>, _ rhs: ShapedArray<T>) -> ShapedArray<T> {
+    static func add<T: ShapedArrayScalar>(_ lhs: ShapedArray<T>, _ rhs: ShapedArray<T>) -> ShapedArray<T> {
         switch T.self {
         case is Float.Type:
             precondition(lhs.count == rhs.count, "Seems src and dst are different")
-            var ret = ShapedArray<T>(repeating: 0.0, shape: lhs.shape)
-            var lhsPtr: UnsafePointer<Float> = helperToPointer(src: lhs)
-            var rhsPtr: UnsafePointer<Float> = helperToPointer(src: rhs)
-            var ptrToDst: UnsafeMutablePointer<Float> = helperToMutatingPointer(dst: &ret)
+            var ret = ShapedArray<T>(repeating: 0.0 as! T, shape: lhs.shape)
+            var lhsPtr: UnsafePointer<Float> = helperToPointer(src: lhs) as! UnsafePointer<Float>
+            var rhsPtr: UnsafePointer<Float> = helperToPointer(src: rhs) as! UnsafePointer<Float>
+            var ptrToDst: UnsafeMutablePointer<Float> = helperToMutatingPointer(dst: &ret) as! UnsafeMutablePointer<Float>
             
             #if canImport(Accelerate)
             vDSP_vadd(lhsPtr, 1, rhsPtr, 1, ptrToDst, 1, UInt(ret.count))
@@ -109,10 +109,10 @@ final class CPU {
             return ret
         case is Double.Type:
             precondition(lhs.count == rhs.count, "Seems src and dst are different")
-            var ret = ShapedArray<T>(repeating: 0.0, shape: lhs.shape)
-            var lhsPtr: UnsafePointer<Double> = helperToPointer(src: lhs)
-            var rhsPtr: UnsafePointer<Double> = helperToPointer(src: rhs)
-            var ptrToDst: UnsafeMutablePointer<Double> = helperToMutatingPointer(dst: &ret)
+            var ret = ShapedArray<T>(repeating: 0.0 as! T, shape: lhs.shape)
+            var lhsPtr: UnsafePointer<Double> = helperToPointer(src: lhs) as! UnsafePointer<Double>
+            var rhsPtr: UnsafePointer<Double> = helperToPointer(src: rhs) as! UnsafePointer<Double>
+            var ptrToDst: UnsafeMutablePointer<Double> = helperToMutatingPointer(dst: &ret) as! UnsafeMutablePointer<Double>
             
             #if canImport(Accelerate)
             vDSP_vaddD(lhsPtr, 1, rhsPtr, 1, ptrToDst, 1, UInt(ret.count))
@@ -123,10 +123,10 @@ final class CPU {
             return ret
         case is Int32.Type:
             precondition(lhs.count == rhs.count, "Seems src and dst are different")
-            var ret = ShapedArray<T>(repeating: 0, shape: lhs.shape)
-            var lhsPtr: UnsafePointer<Int32> = helperToPointer(src: lhs)
-            var rhsPtr: UnsafePointer<Int32> = helperToPointer(src: rhs)
-            var ptrToDst: UnsafeMutablePointer<Int32> = helperToMutatingPointer(dst: &ret)
+            var ret = ShapedArray<T>(repeating: 0 as! T, shape: lhs.shape)
+            var lhsPtr: UnsafePointer<Int32> = helperToPointer(src: lhs) as! UnsafePointer<Int32>
+            var rhsPtr: UnsafePointer<Int32> = helperToPointer(src: rhs) as! UnsafePointer<Int32>
+            var ptrToDst: UnsafeMutablePointer<Int32> = helperToMutatingPointer(dst: &ret) as! UnsafeMutablePointer<Int32>
             
             
             #if canImport(Accelerate)

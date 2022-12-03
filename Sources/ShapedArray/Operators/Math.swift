@@ -1,6 +1,5 @@
 //
 //  Math.swift
-//  
 //
 //  Created by Khalid Alotaibi on 11/23/22.
 //
@@ -112,4 +111,3 @@ extension ShapedArray: ElementaryFunctions where Scalar: ShapedArrayFloatingPoin
     
   
 }
-
