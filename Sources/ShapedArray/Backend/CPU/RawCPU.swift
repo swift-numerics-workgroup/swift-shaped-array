@@ -10,76 +10,23 @@ import Foundation
 
 final class _RawCPU {
     
-    static func sqrtFloat(
-        to dst: UnsafeMutableBufferPointer<Float>,
-        from src: UnsafeBufferPointer<Float>,
+    static func sqrt<T: ShapedArrayFloatingPoint>(
+        to dst: UnsafeMutableBufferPointer<T>,
+        from src: UnsafeBufferPointer<T>,
         count: Int
     ) {
-        for i in 0..<count {
-            dst[i] = sqrtf(src[i])
+        switch T.self {
+        case is Float.Type:
+            for i in 0..<count {
+                dst[i] = T(Darwin.sqrtf(Float(src[i])))
+            }
+        case is Double.Type:
+            for i in 0..<count {
+                dst[i] = Darwin.sqrt(src[i])
+            }
+        default:
+            fatalError("Only implemented for FloatingPoint types")
         }
     }
-    
-    static func sqrtDouble(
-        to dst: UnsafeMutableBufferPointer<Double>,
-        from src: UnsafeBufferPointer<Double>,
-        count: Int
-    ) {
-        for i in 0..<count {
-            dst[i] = sqrt(src[i])
-        }
-    }
-    
-    static func cosFloat(
-        to dst: UnsafeMutableBufferPointer<Double>,
-        from src: UnsafeBufferPointer<Double>,
-        count: Int
-    ) {
-        for i in 0..<count {
-            dst[i] = cos(src[i])
-        }
-    }
-    
-    static func cosDouble(
-        to dst: UnsafeMutableBufferPointer<Double>,
-        from src: UnsafeBufferPointer<Double>,
-        count: Int
-    ) {
-        for i in 0..<count {
-            dst[i] = cos(src[i])
-        }
-    }
-    
-    static func addFloatVec(
-        lhs: UnsafeBufferPointer<Float>,
-        rhs: UnsafeBufferPointer<Float>,
-        to dst: UnsafeMutableBufferPointer<Float>,
-        count: Int
-    ) {
-        for i in 0..<count {
-            dst[i] = lhs[i] + rhs[i]
-        }
-    }
-    
-    static func addDoubleVec(
-        lhs: UnsafeBufferPointer<Double>,
-        rhs: UnsafeBufferPointer<Double>,
-        to dst: UnsafeMutableBufferPointer<Double>,
-        count: Int
-    ) {
-        for i in 0..<count {
-            dst[i] = lhs[i] + rhs[i]
-        }
-    }
-    
-    static func addInt32Vec(
-        lhs: UnsafeBufferPointer<Int32>,
-        rhs: UnsafeBufferPointer<Int32>,
-        to dst: UnsafeMutableBufferPointer<Int32>,
-        count: Int
-    ) {
-        for i in 0..<count {
-            dst[i] = lhs[i] + rhs[i]
-        }
-    }
+ 
 }

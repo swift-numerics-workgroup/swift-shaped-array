@@ -9,22 +9,18 @@
 //Mark:- PointerHelperFunctions
 func helperToPointer<T: ShapedArrayScalar>(
     src: ShapedArray<T>
-) -> UnsafePointer<T>
+) -> UnsafeBufferPointer<T>
 {
-    src.withUnsafeBufferPointer { (tempSrc: UnsafeBufferPointer<T>) in
-        tempSrc.withMemoryRebound(to: T.self) { tempSrc in
-            return UnsafePointer<T>(tempSrc.baseAddress!) //tempSrc.baseAddress!
-        }
+    src.withUnsafeBufferPointer { tempSrc in
+        return tempSrc
     }
 }
 
 func helperToMutatingPointer<T: ShapedArrayScalar>(
     dst: inout ShapedArray<T>
-) -> UnsafeMutablePointer<T>
+) -> UnsafeMutableBufferPointer<T>
 {
-    dst.withUnsafeBufferPointer { (tempDst: UnsafeBufferPointer<T>) in
-        tempDst.withMemoryRebound(to: T.self) { tempDst in
-            return UnsafeMutablePointer<T>(mutating: tempDst.baseAddress!)
-        }
+    dst.withUnsafeMutableBufferPointer { tempDst in
+        return tempDst
     }
 }

@@ -11,9 +11,10 @@ import Differentiation
 import _Differentiation
 #endif
 import Numerics
+import os
 
 
-public protocol ShapedArrayScalar {}
+public protocol ShapedArrayScalar: Numeric {}
 
 public protocol ShapedArrayFloatingPoint:
     ShapedArrayScalar & BinaryFloatingPoint & Differentiable & ElementaryFunctions
@@ -23,3 +24,4 @@ extension Float: ShapedArrayFloatingPoint {}
 extension Double: ShapedArrayFloatingPoint {}
 
 extension Int32: ShapedArrayScalar {}
+
