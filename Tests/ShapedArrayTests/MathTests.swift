@@ -18,9 +18,7 @@ final class MathTests: XCTestCase {
  
     func testMath() {
         let a: ShapedArray<Float> = [1, 4, 9]
-        //let b: ShapedArray<Float> = [1.57, 3.14, 4.71, 6.28]
 
         XCTAssert(ShapedArray.sqrt(a) == [1, 2, 3], "It failed")
-       //XCTAssert(ShapedArray.cos(b) == [0.0, -1.0, 0.0, 1.0], "\(ShapedArray.cos(b))")
     }
 }

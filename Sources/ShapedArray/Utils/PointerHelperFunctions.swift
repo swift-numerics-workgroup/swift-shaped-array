@@ -7,7 +7,7 @@
 
 
 //Mark:- PointerHelperFunctions
-func helperToPointer<T: ShapedArrayScalar>(
+func helperToPointer<T: ShapedArrayFloatingPoint>(
     src: ShapedArray<T>
 ) -> UnsafeBufferPointer<T>
 {
@@ -16,7 +16,7 @@ func helperToPointer<T: ShapedArrayScalar>(
     }
 }
 
-func helperToMutatingPointer<T: ShapedArrayScalar>(
+func helperToMutatingPointer<T: ShapedArrayFloatingPoint>(
     dst: inout ShapedArray<T>
 ) -> UnsafeMutableBufferPointer<T>
 {

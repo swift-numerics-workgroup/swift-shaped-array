@@ -14,7 +14,11 @@
 // limitations under the License.
 
 
+#if canImport(Differentiation)
+import Differentiation
+#else
 import _Differentiation
+#endif
 
 /// `ShapedArray` is a multi-dimensional array. It has a shape, which has type `[Int]` and defines
 /// the array dimensions, and uses a `ShapedArrayBuffer` internally as storage.
@@ -258,69 +262,6 @@ extension ShapedArray: Codable where Scalar: Codable {
         try container.encode(scalars, forKey: .scalars)
     }
 }
-
-
-// Additive Arithmetic Conformance
-
-extension ShapedArray: AdditiveArithmetic where Scalar: Numeric {
-    
-    //scalar zero tensor
-    public static var zero: ShapedArray {
-        let zero = ShapedArray(0)
-        return zero
-    }
-    
-    @inlinable
-    @differentiable(reverse where Scalar: ShapedArrayFloatingPoint)
-    public static func + (lhs: ShapedArray, rhs: ShapedArray) -> ShapedArray {
-        if lhs == ShapedArray(0) {
-            return rhs
-        } else if rhs == ShapedArray(0) {
-            return lhs
-        }
-        return ShapedArray(0) //ShapedArray.add(lhs, rhs)
-    }
-    
-    @inlinable
-    @differentiable(reverse where Scalar: ShapedArrayFloatingPoint)
-    public static func - (lhs: ShapedArray, rhs: ShapedArray) -> ShapedArray {
-        if lhs == ShapedArray(0) {
-            return rhs
-        } else if rhs == ShapedArray(0) {
-            return lhs
-        }
-        return ShapedArray(0) //ShapedArray.sub(lhs, rhs)
-    }
-}
-
-/* This will work when BroadcastingPullback is implemented
-extension ShapedArray where Scalar: ShapedArrayFloatingPoint {
-    @inlinable
-    @derivative(of: +)
-    static func _vjpAdd(lhs: ShapedArray, rhs: ShapedArray) -> (
-        value: ShapedArray, pullback: (ShapedArray) -> (ShapedArray, ShapedArray)
-    ) {
-        (
-            lhs + rhs,
-            { [broadcastPb = BroadcastingPullback(lhs, rhs)] v in
-              return broadcastPb(v, v)
-            }
-        )
-    }
-    
-    @inlinable
-    @derivative(of: -)
-    static func _vjpSub(lhs: ShapedArray, rhs: ShapedArray) -> (
-        value: ShapedArray, pullback: (ShapedArray) -> (ShapedArray, ShapedArray)
-    ) {
-        (
-            lhs - rhs,
-            { [broadcastPb = BroadcastingPullback(lhs, rhs)] v in
-              return broadcastPb(v, -v)
-            }
-        )
-    }
-}*/
 
 // Differentiable Conformance
 

@@ -5,28 +5,32 @@
 //  Created by Khalid Alotaibi on 11/22/22.
 //
 
+//_RawCPU would be based probably like the other libraries such as Accelerate on the BLAS API.
+
 import Foundation
+
 
 
 final class _RawCPU {
     
-    static func sqrt<T: ShapedArrayFloatingPoint>(
-        to dst: UnsafeMutableBufferPointer<T>,
-        from src: UnsafeBufferPointer<T>,
+    static func sqrt(
+        to dst: UnsafeMutableBufferPointer<Double>,
+        from src: UnsafeBufferPointer<Double>,
         count: Int
     ) {
-        switch T.self {
-        case is Float.Type:
-            for i in 0..<count {
-                dst[i] = T(Darwin.sqrtf(Float(src[i])))
-            }
-        case is Double.Type:
-            for i in 0..<count {
-                dst[i] = Darwin.sqrt(src[i])
-            }
-        default:
-            fatalError("Only implemented for FloatingPoint types")
+        for i in 0..<count {
+            dst[i] = Darwin.sqrt(src[i])
         }
     }
- 
+    
+    static func sqrtf(
+        to dst: UnsafeMutableBufferPointer<Float>,
+        from src: UnsafeBufferPointer<Float>,
+        count: Int
+    ) {
+        for i in 0..<count {
+            dst[i] = Darwin.sqrtf(src[i])
+        }
+    }
+
 }
