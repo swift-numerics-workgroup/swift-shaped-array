@@ -262,7 +262,3 @@ extension ShapedArray: Codable where Scalar: Codable {
         try container.encode(scalars, forKey: .scalars)
     }
 }
-
-// Differentiable Conformance
-
-extension ShapedArray: Differentiable where Scalar: ShapedArrayFloatingPoint {}

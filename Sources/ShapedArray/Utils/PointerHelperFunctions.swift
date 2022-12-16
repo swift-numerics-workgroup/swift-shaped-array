@@ -5,9 +5,10 @@
 //  Created by Khalid Alotaibi on 11/27/22.
 //
 
+import RealModule
 
 //Mark:- PointerHelperFunctions
-func helperToPointer<T: ShapedArrayFloatingPoint>(
+func helperToPointer<T: Real>(
     src: ShapedArray<T>
 ) -> UnsafeBufferPointer<T>
 {
@@ -16,7 +17,7 @@ func helperToPointer<T: ShapedArrayFloatingPoint>(
     }
 }
 
-func helperToMutatingPointer<T: ShapedArrayFloatingPoint>(
+func helperToMutatingPointer<T: Real>(
     dst: inout ShapedArray<T>
 ) -> UnsafeMutableBufferPointer<T>
 {

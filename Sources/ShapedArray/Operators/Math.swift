@@ -12,9 +12,8 @@ import _Differentiation
 import Numerics
 
 
-extension ShapedArray where Scalar: ShapedArrayFloatingPoint {
+extension ShapedArray where Scalar: Real {
     
-    @differentiable(reverse)
     public static func sqrt(_ x: Self) -> Self {
         CPU.sqrt(x)
     }

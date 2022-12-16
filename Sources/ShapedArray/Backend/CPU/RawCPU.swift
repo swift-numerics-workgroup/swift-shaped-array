@@ -8,28 +8,19 @@
 //_RawCPU would be based probably like the other libraries such as Accelerate on the BLAS API.
 
 import Foundation
+import RealModule
 
 
 
 final class _RawCPU {
     
-    static func sqrt(
-        to dst: UnsafeMutableBufferPointer<Double>,
-        from src: UnsafeBufferPointer<Double>,
+    static func sqrt<T: Real>(
+        to dst: UnsafeMutableBufferPointer<T>,
+        from src: UnsafeBufferPointer<T>,
         count: Int
     ) {
         for i in 0..<count {
             dst[i] = Darwin.sqrt(src[i])
-        }
-    }
-    
-    static func sqrtf(
-        to dst: UnsafeMutableBufferPointer<Float>,
-        from src: UnsafeBufferPointer<Float>,
-        count: Int
-    ) {
-        for i in 0..<count {
-            dst[i] = Darwin.sqrtf(src[i])
         }
     }
 
