@@ -4,11 +4,6 @@
 //  Created by Khalid Alotaibi on 11/23/22.
 //
 
-#if canImport(Differentiation)
-import Differentiation
-#else
-import _Differentiation
-#endif
 import Numerics
 
 

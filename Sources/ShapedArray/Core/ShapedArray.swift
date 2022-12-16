@@ -14,12 +14,6 @@
 // limitations under the License.
 
 
-#if canImport(Differentiation)
-import Differentiation
-#else
-import _Differentiation
-#endif
-
 /// `ShapedArray` is a multi-dimensional array. It has a shape, which has type `[Int]` and defines
 /// the array dimensions, and uses a `ShapedArrayBuffer` internally as storage.
 @frozen
