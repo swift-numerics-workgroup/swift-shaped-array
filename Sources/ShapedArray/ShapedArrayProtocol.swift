@@ -19,7 +19,7 @@ import Swift
 // ShapedArrayProtocol: The protocol unifying ShapedArray and ShapedArraySlice.
 //===------------------------------------------------------------------------------------------===//
 
-public protocol _ShapedArrayProtocol: RandomAccessCollection, MutableCollection {
+public protocol _ShapedArrayProtocol<Scalar>: RandomAccessCollection, MutableCollection {
     associatedtype Scalar
     
     /// The number of dimensions of the array.
