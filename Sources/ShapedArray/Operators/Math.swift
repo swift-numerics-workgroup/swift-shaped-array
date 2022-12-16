@@ -13,15 +13,5 @@ extension ShapedArray where Scalar: Real {
         CPU.sqrt(x)
     }
     
-    /* Need conformance to SIMD to work
-    @inlinable
-    @derivative(of: sqrt)
-    internal static func _vpjSqrt(
-        _ x: ShapedArray
-    ) -> (value: ShapedArray, pullback: (ShapedArray<Scalar>.TangentVector) -> ShapedArray<Scalar>.TangentVector) {
-        let value = ShapedArray.sqrt(x)
-        return (value, {v in v / (2 * value)})
-    }
-     */
 }
 

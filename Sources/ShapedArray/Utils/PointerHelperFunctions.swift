@@ -8,7 +8,7 @@
 import RealModule
 
 //Mark:- PointerHelperFunctions
-func helperToPointer<T: Real>(
+func helperToPointer<T>(
     src: ShapedArray<T>
 ) -> UnsafeBufferPointer<T>
 {
@@ -17,7 +17,7 @@ func helperToPointer<T: Real>(
     }
 }
 
-func helperToMutatingPointer<T: Real>(
+func helperToMutatingPointer<T>(
     dst: inout ShapedArray<T>
 ) -> UnsafeMutableBufferPointer<T>
 {

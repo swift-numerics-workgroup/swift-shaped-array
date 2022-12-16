@@ -22,7 +22,7 @@ public struct ShapedArray<Scalar>: _ShapedArrayProtocol {
     internal var buffer: [Scalar]
     
     /// The dimensions of the array.
-    @noDerivative public private(set) var shape: [Int]
+    public private(set) var shape: [Int]
         
     /// Creates a `ShapedArray` from a `ShapedArrayBuffer` and a shape.
     internal init(buffer: __owned [Scalar], shape: __owned [Int]) {

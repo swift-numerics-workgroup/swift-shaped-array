@@ -16,7 +16,7 @@ final class MathTests: XCTestCase {
         print(ShapedArray(shape: [4], scalars: [1, 2, 3, 4]))
     }
  
-    func testMath() {
+    func testSqrt() {
         let a: ShapedArray<Float> = [1, 4, 9]
 
         XCTAssert(ShapedArray.sqrt(a) == [1, 2, 3], "It failed")
