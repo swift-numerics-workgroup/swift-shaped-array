@@ -93,4 +93,24 @@ final class ShapedArrayTests: XCTestCase {
         
         XCTAssertEqual(a.shape, [3, 2, 3])
     }
+
+    func testReshaped() {
+        let a: ShapedArray<Int> = [
+            [[1, 2, 3], [4, 5, 6]],
+            [[1, 2, 3], [4, 5, 6]],
+            [[1, 2, 3], [4, 5, 6]]
+        ]
+
+        let b = a.reshaped(to: [3, 6])
+        XCTAssertEqual(b.scalarCount, a.scalarCount)
+        XCTAssertEqual(b.shape, [3, 6])
+
+        let c = b.reshaped(to: 18)
+        XCTAssertEqual(c.scalarCount, a.scalarCount)
+        XCTAssertEqual(c.shape, [18])
+        
+        let d = c.reshaped(like: b)
+        XCTAssertEqual(d.scalarCount, a.scalarCount)
+        XCTAssertEqual(d.shape, [3, 6])
+    }
 }
