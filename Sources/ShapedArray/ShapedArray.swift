@@ -52,7 +52,7 @@ extension ShapedArray {
     /// Creates a `ShapedArray` with the specified shape and contiguous scalars in row-major order.
     /// - Precondition: The number of scalars must equal the product of the dimensions of the shape.
     public init(shape: __owned [Int], scalars: __owned [Scalar]) {
-        precondition(shape.reduce(1, *) == scalars.count, "Scalar count mismatch.")
+        precondition(shape.reduce(1, *) == scalars.count, "Scalar count mismatch. Reduced shape=\(shape.reduce(1, *)); scalars.count=\(scalars.count)")
         self.init(buffer: scalars, shape: shape)
     }
     
