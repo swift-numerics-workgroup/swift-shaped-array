@@ -49,7 +49,7 @@ extension ShapedArray {
         precondition(!arrays.isEmpty, "Cannot pack empty array of ShapedArrays.")
         let shape = arrays.first!.shape
         precondition(axis >= 0 && axis <= shape.count, "axis = \(axis) is not within [0, \(shape.count)]")
-        // we use assert here for increased performance in release mode.
+        // We use assert here for increased performance in release mode.
         assert(!arrays.contains(where: { $0.shape != shape }), "Shapes of all inputs must match: \(shape).")
         let scalarCount = arrays.first!.scalarCount
         let totalScalars = scalarCount * arrays.count
