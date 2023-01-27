@@ -15,8 +15,21 @@
 
 extension ShapedArray {
     public func reshaped(to newShape: [Int]) -> ShapedArray {
-        precondition(newShape.reduce(1, *) == self.scalarCount, "Cannot reshape to shape \(newShape) because it has a different number of elements than the original shape \(self.shape).")
-        return .init(shape: newShape, scalars: self.scalars)
+        var shape = [Int]()
+        if newShape.contains(-1) {
+            let newShapeScalarCount = newShape.reduce(1, *) * -1
+            let remDim = self.scalarCount / newShapeScalarCount
+            for ele in newShape {
+                if ele == -1 { shape.append(remDim); continue }
+                shape.append(ele)
+            }
+        } else {
+            shape = newShape
+        }
+        
+        precondition(shape.reduce(1, *) == self.scalarCount, "Cannot reshape to shape \(shape) because it has a different number of elements than the original shape \(self.shape).")
+        
+        return .init(shape: shape, scalars: self.scalars)
     }
 
     public func reshaped(to newShape: Int...) -> ShapedArray {
@@ -25,6 +38,10 @@ extension ShapedArray {
 
     public func reshaped<T>(like other: ShapedArray<T>) -> ShapedArray {
         return self.reshaped(to: other.shape)
+    }
+    
+    public func flattened() -> ShapedArray {
+        reshaped(to: -1)
     }
 
     /// Unpacks the given dimension of a rank-`R` ShapedArray into multiple rank-`(R-1)` ShapedArrays.
@@ -90,13 +107,13 @@ extension ShapedArray {
         let axis = Int(k)
         return axis >= -rank && axis < rank
     }
-
+    
     /// Returns `true` iff each element of `axes` denotes an axis of `self`.
     @usableFromInline
     internal func areValid<T: BinaryInteger>(axes: [T]) -> Bool {
         return axes.allSatisfy { isValid(axis: $0) }
     }
-
+    
     /// Returns `true` iff each element of `axes` denotes an axis of `self`.
     ///
     /// - Precondition: `axes` has rank 0 or rank 1.
@@ -107,13 +124,13 @@ extension ShapedArray {
         line: UInt = #line
     ) -> Bool {
         precondition(
-        axes.rank < 2,
-        "Axes must have rank 0 or rank 1; axes has rank \(axes.rank) with values \(axes.scalars).",
-        file: file,
-        line: line)
+            axes.rank < 2,
+            "Axes must have rank 0 or rank 1; axes has rank \(axes.rank) with values \(axes.scalars).",
+            file: file,
+            line: line)
         return areValid(axes: axes.scalars)
     }
-
+    
     /// Checks that each element of `axes` denotes an axis of `self`, and stops the program with a
     /// diagnostic otherwise.
     @usableFromInline
@@ -124,12 +141,12 @@ extension ShapedArray {
         line: UInt = #line
     ) {
         precondition(
-        areValid(axes: axes, file: file, line: line),
-        "All axes must be in `-rank..<rank` when calling \(function) (rank: \(rank), axes: \(axes))",
-        file: file,
-        line: line)
+            areValid(axes: axes, file: file, line: line),
+            "All axes must be in `-rank..<rank` when calling \(function) (rank: \(rank), axes: \(axes))",
+            file: file,
+            line: line)
     }
-
+    
     /// Checks that each element of `axes` denotes an axis of `self`, and stops the program with a
     /// diagnostic otherwise.
     @usableFromInline
@@ -140,12 +157,12 @@ extension ShapedArray {
         line: UInt = #line
     ) {
         precondition(
-        areValid(axes: axes),
-        "All axes must be in `-rank..<rank` when calling \(function) (rank: \(rank), axes: \(axes))",
-        file: file,
-        line: line)
+            areValid(axes: axes),
+            "All axes must be in `-rank..<rank` when calling \(function) (rank: \(rank), axes: \(axes))",
+            file: file,
+            line: line)
     }
-
+    
     /// Checks that `k` denotes an axis of `self`, and stops the program with a diagnostic otherwise.
     @usableFromInline
     func ensureValid(
@@ -155,9 +172,9 @@ extension ShapedArray {
         line: UInt = #line
     ) {
         precondition(
-        isValid(axis: k),
-        "Axis must be in `-rank..<rank` when calling \(function) (rank: \(rank), axis: \(k))",
-        file: file,
-        line: line)
+            isValid(axis: k),
+            "Axis must be in `-rank..<rank` when calling \(function) (rank: \(rank), axis: \(k))",
+            file: file,
+            line: line)
     }
 }
