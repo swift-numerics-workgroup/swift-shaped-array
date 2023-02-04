@@ -15,17 +15,20 @@
 
 extension ShapedArray {
     public func reshaped(to newShape: [Int]) -> ShapedArray {
-        var shape = [Int]()
-        if newShape.contains(-1) {
-            let newShapeScalarCount = newShape.reduce(1, *) * -1
-            let remDim = self.scalarCount / newShapeScalarCount
-            for ele in newShape {
-                if ele == -1 { shape.append(remDim); continue }
-                shape.append(ele)
+        let shape = {
+            if newShape.contains(-1) {
+                let newShapeScalarCount = newShape.reduce(1, *) * -1
+                let remainingDim = self.scalarCount / newShapeScalarCount
+                return newShape.map {
+                    if $0 == -1 {
+                        return remainingDim
+                    }
+                    return $0
+                }
+            } else {
+                return newShape
             }
-        } else {
-            shape = newShape
-        }
+        }()
         
         precondition(shape.reduce(1, *) == self.scalarCount, "Cannot reshape to shape \(shape) because it has a different number of elements than the original shape \(self.shape).")
         
