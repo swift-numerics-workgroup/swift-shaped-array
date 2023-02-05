@@ -140,7 +140,7 @@ final class ShapedArrayTests: XCTestCase {
             [[1, 2, 3], [4, 5, 6]],
             [[1, 2, 3], [4, 5, 6]]
         ]
-
+        
         let b = a.reshaped(to: [3, 6])
         XCTAssertEqual(b.scalarCount, a.scalarCount)
         XCTAssertEqual(b.shape, [3, 6])
@@ -152,5 +152,27 @@ final class ShapedArrayTests: XCTestCase {
         let d = c.reshaped(like: b)
         XCTAssertEqual(d.scalarCount, a.scalarCount)
         XCTAssertEqual(d.shape, [3, 6])
+        
+        let e = a.reshaped(to: -1)
+        XCTAssertEqual(e.shape, [18])
+        
+        let f = a.reshaped(to: [3, -1, 3])
+        XCTAssertEqual(f.shape, [3, 2, 3])
+        
+        let g = a.reshaped(to: [3, 3, -1])
+        XCTAssertEqual(g.shape, [3, 3, 2])
+    }
+    
+    func testFlattened() {
+        let a: ShapedArray<Int> = [
+            [[1, 2, 3], [4, 5, 6]],
+            [[1, 2, 3], [4, 5, 6]],
+            [[1, 2, 3], [4, 5, 6]]
+        ]
+        
+        let b = a.flattened()
+        
+        XCTAssertEqual(b, [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6])
+        XCTAssertEqual(b.shape, [18])
     }
 }
