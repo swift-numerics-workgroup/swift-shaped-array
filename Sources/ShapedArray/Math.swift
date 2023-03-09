@@ -28,19 +28,7 @@ extension ShapedArray where Scalar: Numeric {
 
             // TODO: Should use arithmetic or for-loops over remaining&reduction rather than set.
             let remainingAxes = Set(remainingAxesAndShape.map { $0.0 })
-
-            // How much of the array to skip per axis.
-            // E.g. if final array is [5, 4, 3] then this is [4*3=12, 3*1=3, 1].
-            let remainingAxesSkipLength = remainingAxesAndShape
-                .reversed()
-                .reduce(into: (axesSkipLength: [Int](), skipLengthSoFar: 1),
-                { (acc, remainingAxisAndShape) in
-                    let (_, axisLength) = remainingAxisAndShape
-                    acc.axesSkipLength.append(acc.skipLengthSoFar)
-                    acc.skipLengthSoFar *= axisLength
-                })
-                .0
-            let newDimensions = newShape.count
+            let remainingAxesSkipLength = ShapedArray.stride(forShape: remainingAxesAndShape.map { $0.1 })
 
             // Keep track of positions in the shaped array. Like shaped array
             // these iters keep track of higher dimensions first.
@@ -60,11 +48,7 @@ extension ShapedArray where Scalar: Numeric {
                         return (newDimensionsIter, newPosition)
                     }
 
-                    // Higher dimensions come first in our axes.
-                    // E.g `newDimensions = 5` and we've iterated `newDimensionsIter` twice,
-                    // then we're at dim 3, but 0 indexing so axis 2.
-                    let remainingAxesIdx = newDimensions - newDimensionsIter - 1
-                    let updatedNewPosition = newPosition + oldAxisIter * remainingAxesSkipLength[remainingAxesIdx]
+                    let updatedNewPosition = newPosition + oldAxisIter * remainingAxesSkipLength[newDimensionsIter]
                     return (newDimensionsIter + 1, updatedNewPosition)
                 })
                 .1
