@@ -36,15 +36,17 @@ extension ShapedArray {
     }
 
     public func reshaped(to newShape: Int...) -> ShapedArray {
-        return self.reshaped(to: newShape)
+        self.reshaped(to: newShape)
     }
 
     public func reshaped<T>(like other: ShapedArray<T>) -> ShapedArray {
-        return self.reshaped(to: other.shape)
+        self.reshaped(to: other.shape)
     }
-    
+
+    /// Return a copy of the ShapedArray collapsed into a 1-D `ShapedArray`, in row-major order.
+    @inlinable
     public func flattened() -> ShapedArray {
-        reshaped(to: -1)
+        self.reshaped(to: -1)
     }
 
     /// Unpacks the given dimension of a rank-`R` ShapedArray into multiple rank-`(R-1)` ShapedArrays.
@@ -108,16 +110,20 @@ extension ShapedArray {
     @usableFromInline
     internal func isValid<T: BinaryInteger>(axis k: T) -> Bool {
         let axis = Int(k)
-        return axis >= -rank && axis < rank
+        return axis >= -self.rank && axis < self.rank
     }
-    
-    /// Returns `true` iff each element of `axes` denotes an axis of `self`.
+
+    /// Returns `true` iff each element of `axes` denotes an axis of `self`
+    /// _and_ there is no repeated axis.
     @usableFromInline
     internal func areValid<T: BinaryInteger>(axes: [T]) -> Bool {
-        return axes.allSatisfy { isValid(axis: $0) }
+        let rank = self.rank
+        return axes.allSatisfy { self.isValid(axis: $0) }
+            && (Set(axes.map { $0 < 0 ? Int($0) + rank : Int($0) }).count == axes.count)
     }
-    
-    /// Returns `true` iff each element of `axes` denotes an axis of `self`.
+
+    /// Returns `true` iff each element of `axes` denotes an axis of `self`
+    /// _and_ there is no repeated axis.
     ///
     /// - Precondition: `axes` has rank 0 or rank 1.
     @usableFromInline
@@ -127,11 +133,11 @@ extension ShapedArray {
         line: UInt = #line
     ) -> Bool {
         precondition(
-            axes.rank < 2,
-            "Axes must have rank 0 or rank 1; axes has rank \(axes.rank) with values \(axes.scalars).",
-            file: file,
-            line: line)
-        return areValid(axes: axes.scalars)
+        axes.rank < 2,
+        "Axes must have rank 0 or rank 1; axes has rank \(axes.rank) with values \(axes.scalars).",
+        file: file,
+        line: line)
+        return self.areValid(axes: axes.scalars)
     }
     
     /// Checks that each element of `axes` denotes an axis of `self`, and stops the program with a
@@ -144,10 +150,10 @@ extension ShapedArray {
         line: UInt = #line
     ) {
         precondition(
-            areValid(axes: axes, file: file, line: line),
-            "All axes must be in `-rank..<rank` when calling \(function) (rank: \(rank), axes: \(axes))",
-            file: file,
-            line: line)
+        self.areValid(axes: axes, file: file, line: line),
+        "All axes must be in `-rank..<rank` when calling \(function) (rank: \(rank), axes: \(axes))",
+        file: file,
+        line: line)
     }
     
     /// Checks that each element of `axes` denotes an axis of `self`, and stops the program with a
@@ -160,10 +166,10 @@ extension ShapedArray {
         line: UInt = #line
     ) {
         precondition(
-            areValid(axes: axes),
-            "All axes must be in `-rank..<rank` when calling \(function) (rank: \(rank), axes: \(axes))",
-            file: file,
-            line: line)
+        self.areValid(axes: axes),
+        "All axes must be in `-rank..<rank` when calling \(function) (rank: \(rank), axes: \(axes))",
+        file: file,
+        line: line)
     }
     
     /// Checks that `k` denotes an axis of `self`, and stops the program with a diagnostic otherwise.
@@ -175,9 +181,9 @@ extension ShapedArray {
         line: UInt = #line
     ) {
         precondition(
-            isValid(axis: k),
-            "Axis must be in `-rank..<rank` when calling \(function) (rank: \(rank), axis: \(k))",
-            file: file,
-            line: line)
+        self.isValid(axis: k),
+        "Axis must be in `-rank..<rank` when calling \(function) (rank: \(rank), axis: \(k))",
+        file: file,
+        line: line)
     }
 }

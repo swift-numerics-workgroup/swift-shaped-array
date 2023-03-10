@@ -43,6 +43,23 @@ extension ShapedArray {
     public var scalarCount: Int {
         return buffer.count
     }
+
+    /// The stride of the array in terms of element count, not bytes.
+    public var stride: [Int] {
+        Self.stride(forShape: self.shape)
+    }
+
+    @inlinable
+    public static func stride(forShape shape: [Int]) -> [Int] {
+        shape.reversed()
+            .reduce(into: (reversedStride: [Int](), skipLengthSoFar: 1)) {
+                (acc, axisLength) in
+                acc.reversedStride.append(acc.skipLengthSoFar)
+                acc.skipLengthSoFar *= axisLength
+            }
+            .0
+            .reversed()
+    }
     
     /// Creates a `ShapedArray` with the same shape and scalars as the specified instance.
     public init(_ other: ShapedArray) {
