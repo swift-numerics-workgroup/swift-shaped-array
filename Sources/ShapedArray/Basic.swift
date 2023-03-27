@@ -29,9 +29,9 @@ extension ShapedArray {
                 return newShape
             }
         }()
-        
+
         precondition(shape.reduce(1, *) == self.scalarCount, "Cannot reshape to shape \(shape) because it has a different number of elements than the original shape \(self.shape).")
-        
+
         return .init(shape: shape, scalars: self.scalars)
     }
 
@@ -48,6 +48,53 @@ extension ShapedArray {
     public func flattened() -> ShapedArray {
         self.reshaped(to: -1)
     }
+
+
+    @inlinable
+    func split(numSplits: Int, alongAxis axis: Int = 0) -> [ShapedArray] {
+        var sizes = [Int]()
+        for _ in 0..<numSplits {
+            sizes.append(self.shape[axis]/numSplits)
+        }
+        return split(sizes: sizes, alongAxis: axis)
+    }
+
+
+    @inlinable
+    func split(sizes: [Int], alongAxis axis: Int = 0) -> [ShapedArray] {
+        ensureValid(axis: axis)
+        let axis = axis < 0 ? axis + self.rank : axis
+
+        let lengthAfterAxis = self.stride[axis]
+        let lengthAtAxis = axis == 0 ? self.stride.reduce(1, *) : self.stride[axis - 1]
+
+        let newShape = self.shape.enumerated().filter { $0.0 != axis }.map { $0.1 }
+
+        var sizesAccumulated = [0] + sizes
+        for i in 1..<sizesAccumulated.count {
+            sizesAccumulated[i] += sizesAccumulated[i-1]
+        }
+
+        let newArrays = sizes.enumerated().map { (i, size) in
+            let scalarsPerArray = size * newShape.reduce(1, *)
+            return Array<Scalar>(unsafeUninitializedCapacity: scalarsPerArray) { buffer, initializedCount in
+                for j in 0..<scalarsPerArray {
+                    let mod = j % lengthAfterAxis
+                    let finishedRows = j / lengthAfterAxis
+                    let arrayOffset = sizesAccumulated[i] * lengthAfterAxis
+                    let skipAxisLength = finishedRows * lengthAtAxis
+
+                    let value = self.scalars[mod + arrayOffset + skipAxisLength]
+                    buffer[j] = value
+                }
+                initializedCount = scalarsPerArray
+            }
+        }
+
+        return newArrays.map { ShapedArray(shape: newShape, scalars: $0) }
+    }
+
+
 
     /// Unpacks the given dimension of a rank-`R` ShapedArray into multiple rank-`(R-1)` ShapedArrays.
     /// Unpacks `N` ShapedArrays from this ShapedArray by chipping it along the `axis` dimension, where `N`
@@ -73,31 +120,7 @@ extension ShapedArray {
     /// - Returns: Array containing the unstacked ShapedArrays.
     @inlinable
     public func unstacked(alongAxis axis: Int = 0) -> [ShapedArray] {
-        ensureValid(axis: axis)
-        let axis = axis < 0 ? axis + self.rank : axis
-        let numberOfArrays = self.shape[axis]
-
-        let lengthAfterAxis = self.shape[(axis + 1)..<self.shape.count].reduce(1, *)
-        let lengthAtAxis = self.shape[axis..<self.shape.count].reduce(1, *)
-        let newShape = self.shape.enumerated().filter { $0.0 != axis }.map { $0.1 }
-        let scalarsPerArray = newShape.reduce(1, *)
-
-        let newArrays = (0..<numberOfArrays).map { i in
-            Array<Scalar>(unsafeUninitializedCapacity: scalarsPerArray) { buffer, initializedCount in
-                for j in 0..<scalarsPerArray {
-                    let mod = j % lengthAfterAxis
-                    let finishedRows = j / lengthAfterAxis
-                    let arrayOffset = i * lengthAfterAxis
-                    let skipAxisLength = finishedRows * lengthAtAxis
-
-                    let value = self.scalars[mod + arrayOffset + skipAxisLength]
-                    buffer[j] = value
-                }
-                initializedCount = scalarsPerArray
-            }
-        }
-
-        return newArrays.map { ShapedArray(shape: newShape, scalars: $0) }
+        return self.split(numSplits: self.shape[axis], alongAxis: axis)
     }
 }
 
@@ -139,7 +162,7 @@ extension ShapedArray {
         line: line)
         return self.areValid(axes: axes.scalars)
     }
-    
+
     /// Checks that each element of `axes` denotes an axis of `self`, and stops the program with a
     /// diagnostic otherwise.
     @usableFromInline
@@ -155,7 +178,7 @@ extension ShapedArray {
         file: file,
         line: line)
     }
-    
+
     /// Checks that each element of `axes` denotes an axis of `self`, and stops the program with a
     /// diagnostic otherwise.
     @usableFromInline
@@ -171,7 +194,7 @@ extension ShapedArray {
         file: file,
         line: line)
     }
-    
+
     /// Checks that `k` denotes an axis of `self`, and stops the program with a diagnostic otherwise.
     @usableFromInline
     func ensureValid(

@@ -69,7 +69,7 @@ extension ShapedArray where Scalar: Numeric {
             }
             initializedCount = totalScalars
         }
-        
+
         let finalShape = keepDims ? {
             var newShape = self.shape
             for (axis, _) in reductionAxesAndShape {

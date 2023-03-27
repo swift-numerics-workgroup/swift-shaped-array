@@ -18,7 +18,7 @@ final class ShapedArrayTests: XCTestCase {
         XCTAssertEqual(array1D.scalars, Array(stride(from: 35, to: 40, by: 1)))
         XCTAssertEqual(array0D.scalars, [43])
     }
-    
+
     func testElementIndexingAssignment() {
         var array3D = ShapedArray<Float>(shape: [3, 4, 5],
                                          scalars: Array(stride(from: 0, to: 60, by: 1)))
@@ -56,7 +56,7 @@ final class ShapedArrayTests: XCTestCase {
         XCTAssertEqual(slice2D.scalars, Array(stride(from: 20, to: 30, by: 1)))
         XCTAssertEqual(slice1D.scalars, Array(stride(from: 3, to: 5, by: 1)))
     }
-    
+
     func testStacking() {
         let x: ShapedArray<Double> = ShapedArray(shape: [2, 3], scalars: Array(stride(from: 0, to: 6, by: 1)))
         let y: ShapedArray<Double> = ShapedArray(shape: [2, 3], scalars: Array(stride(from: 6, to: 12, by: 1)))
@@ -123,14 +123,14 @@ final class ShapedArrayTests: XCTestCase {
             p3.unstacked(alongAxis: 2).map { $0.scalars },
             [x.scalars, y.scalars, z.scalars])
     }
-    
+
     func testExpressibleByArrayLiteral() {
         let a: ShapedArray<Int> = [
             [[1, 2, 3], [4, 5, 6]],
             [[1, 2, 3], [4, 5, 6]],
             [[1, 2, 3], [4, 5, 6]]
         ]
-        
+
         XCTAssertEqual(a.shape, [3, 2, 3])
     }
 
@@ -140,7 +140,7 @@ final class ShapedArrayTests: XCTestCase {
             [[1, 2, 3], [4, 5, 6]],
             [[1, 2, 3], [4, 5, 6]]
         ]
-        
+
         let b = a.reshaped(to: [3, 6])
         XCTAssertEqual(b.scalarCount, a.scalarCount)
         XCTAssertEqual(b.shape, [3, 6])
@@ -148,31 +148,45 @@ final class ShapedArrayTests: XCTestCase {
         let c = b.reshaped(to: 18)
         XCTAssertEqual(c.scalarCount, a.scalarCount)
         XCTAssertEqual(c.shape, [18])
-        
+
         let d = c.reshaped(like: b)
         XCTAssertEqual(d.scalarCount, a.scalarCount)
         XCTAssertEqual(d.shape, [3, 6])
-        
+
         let e = a.reshaped(to: -1)
         XCTAssertEqual(e.shape, [18])
-        
+
         let f = a.reshaped(to: [3, -1, 3])
         XCTAssertEqual(f.shape, [3, 2, 3])
-        
+
         let g = a.reshaped(to: [3, 3, -1])
         XCTAssertEqual(g.shape, [3, 3, 2])
     }
-    
+
     func testFlattened() {
         let a: ShapedArray<Int> = [
             [[1, 2, 3], [4, 5, 6]],
             [[1, 2, 3], [4, 5, 6]],
             [[1, 2, 3], [4, 5, 6]]
         ]
-        
+
         let b = a.flattened()
-        
+
         XCTAssertEqual(b, [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6])
         XCTAssertEqual(b.shape, [18])
+    }
+
+    func testSplit() {
+        let a: ShapedArray<Int> = [
+            [[1, 2, 3], [4, 5, 6]],
+            [[1, 2, 3], [4, 5, 6]],
+            [[1, 2, 3], [4, 5, 6]]
+        ]
+
+        let b = a.split(numSplits: 3, alongAxis: 0)
+        XCTAssertEqual(b.count, 3)
+        XCTAssertEqual(b[0].shape, [2, 3])
+        XCTAssertEqual(b[1].shape, [2, 3])
+        XCTAssertEqual(b[2].shape, [2, 3])
     }
 }
