@@ -13,6 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+public enum ShapedArrayError: Error {
+    case indexOutOfBounds(index: Int, shape: [Int])
+    case broadcastMismatch(firstShape: [Int], secondShape: [Int])
+
+    var errorDescription: String? {
+        switch self {
+        case .indexOutOfBounds(let index, let shape): return "Index \(index) is out of bounds for shape \(shape)"
+        case .broadcastMismatch(let firstShape, let secondShape): return "Objects cannot be broadcast to a single shape. Mismatch is between arg 0 with shape \(firstShape) and arg 1 with shape \(secondShape)."
+        }
+    }
+}
+
 /// `ShapedArray` is a multi-dimensional array. It has a shape, which has type `[Int]` and defines
 /// the array dimensions, and uses a `ShapedArrayBuffer` internally as storage.
 @frozen
@@ -44,21 +56,9 @@ extension ShapedArray {
         return buffer.count
     }
 
-    /// The stride of the array in terms of element count, not bytes.
-    public var stride: [Int] {
-        Self.stride(forShape: self.shape)
-    }
-
-    @inlinable
-    public static func stride(forShape shape: [Int]) -> [Int] {
-        shape.reversed()
-            .reduce(into: (reversedStride: [Int](), skipLengthSoFar: 1)) {
-                (acc, axisLength) in
-                acc.reversedStride.append(acc.skipLengthSoFar)
-                acc.skipLengthSoFar *= axisLength
-            }
-            .0
-            .reversed()
+    /// The strides of the array in terms of element count, not bytes.
+    public var strides: [Int] {
+        Shape.strides(forShape: self.shape)
     }
     
     /// Creates a `ShapedArray` with the same shape and scalars as the specified instance.
@@ -270,5 +270,56 @@ extension ShapedArray: Codable where Scalar: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(shape, forKey: .shape)
         try container.encode(scalars, forKey: .scalars)
+    }
+}
+
+/// Currently just contains a set of helpers since we use `[Int]` for shape.
+/// However it is nice to have encapsulation of these functions under a single
+/// namespace and extending `Array` with these functions may create confusion
+/// or conflicting implementations.
+public struct Shape {
+    @inlinable
+    public static func strides(forShape shape: [Int]) -> [Int] {
+        shape.reversed()
+            .reduce(into: (reversedStrides: [Int](), skipLengthSoFar: 1)) {
+                (acc, axisLength) in
+                acc.reversedStrides.append(acc.skipLengthSoFar)
+                acc.skipLengthSoFar *= axisLength
+            }
+            .0
+            .reversed()
+    }
+
+    /// Converts an index into the buffer (index into a flat array) into an
+    /// array of coordinate indices for the shape.
+    ///
+    /// Similar to `https://numpy.org/doc/stable/reference/generated/numpy.unravel_index.html`
+    @inlinable
+    public static func unravelBufferIndex(_ bufferIndex: Int, forShape shape: [Int]) throws -> [Int] {
+        precondition(bufferIndex >= 0)
+        let strides = Self.strides(forShape: shape)
+        let result = try strides.enumerated().reduce(into: (indices: [Int](), remainder: bufferIndex)) { (acc, enumeratedStride) in
+            let axisStride = enumeratedStride.1
+            let index = acc.remainder / axisStride
+            let contribution = index * axisStride
+
+            if index >= shape[enumeratedStride.0] {
+                throw ShapedArrayError.indexOutOfBounds(index: bufferIndex, shape: shape)
+            }
+            acc.indices.append(index)
+            acc.remainder -= contribution
+        }
+        // Debug.
+        assert(result.remainder <= 0, "unravelBufferIndex implementation is broken")
+        return result.indices
+    }
+
+    @inlinable static func ravelBufferIndexFromMultiIndex(_ indices: [Int], forShape shape: [Int]) -> Int {
+        // TODO: Convert to throw.
+        precondition(indices.count == shape.count)
+        let strides = Self.strides(forShape: shape)
+        return strides.enumerated().reduce(0) { (acc, enumeratedStride) in
+            acc + indices[enumeratedStride.0] * enumeratedStride.1
+        }
     }
 }

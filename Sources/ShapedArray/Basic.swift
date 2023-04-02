@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import Algorithms
+
 extension ShapedArray {
     public func reshaped(to newShape: [Int]) -> ShapedArray {
         let shape = {
@@ -98,6 +100,78 @@ extension ShapedArray {
         }
 
         return newArrays.map { ShapedArray(shape: newShape, scalars: $0) }
+    }
+}
+
+//===------------------------------------------------------------------------------------------===//
+// Broadcasting
+//===------------------------------------------------------------------------------------------===//
+
+extension ShapedArray {
+    /// For more info see `https://numpy.org/doc/stable/user/basics.broadcasting.html`.
+    @inlinable
+    public func broadcastingOp(with otherShapedArray: ShapedArray, _ op: (_ lhs: Scalar, _ rhs: Scalar) throws -> Scalar) throws -> ShapedArray {
+        let (lessDimsArray, moreDimsArray) = self.shape.count > otherShapedArray.shape.count ? (otherShapedArray, self) : (self, otherShapedArray)
+
+        // If we have shapes [1, 2] and [4, 5, 3, 1] then lessDimsBroadcastedShape
+        // is [1, 1, 1, 2], finalShape is [4, 5, 3, 2].
+        let lessDimsBroadcastedShape = [Int](repeating: 1, count: moreDimsArray.shape.count - lessDimsArray.shape.count) + lessDimsArray.shape
+
+        let finalShape = try moreDimsArray.shape.enumerated().map {
+            let axis = $0.0
+            let length = $0.1
+            if length == 1 && lessDimsBroadcastedShape[axis] > 1 {
+                return lessDimsBroadcastedShape[axis]
+            }
+            else if length > 1 && lessDimsBroadcastedShape[axis] == 1 {
+                return length
+            }
+            else if length != lessDimsBroadcastedShape[axis] {
+                throw ShapedArrayError.broadcastMismatch(firstShape: self.shape, secondShape: otherShapedArray.shape)
+            }
+            return length
+        }
+
+        let lessDimsOneAxes: [Int] = lessDimsBroadcastedShape.enumerated().compactMap {
+            guard $0.1 == 1 else { return nil }
+            return $0.0
+        }
+
+        let moreDimsOneAxes: [Int] = moreDimsArray.shape.enumerated().compactMap {
+            guard $0.1 == 1 else { return nil }
+            return $0.0
+        }
+
+        let lessDimsScalars = lessDimsArray.scalars
+        let moreDimsScalars = moreDimsArray.scalars
+        let finalShapeCount = finalShape.reduce(1, *)
+
+        let finalScalars = try Array<Scalar>(unsafeUninitializedCapacity: finalShapeCount) { buffer, initializedCount in
+            for bufferIndex in 0..<finalShapeCount {
+                let indices = try Shape.unravelBufferIndex(bufferIndex, forShape: finalShape)
+                let lessDimsVal = {
+                    var lessDimsIndices = indices
+                    for axis in lessDimsOneAxes {
+                        lessDimsIndices[axis] = 0
+                    }
+                    let lessDimsBufferIndex = Shape.ravelBufferIndexFromMultiIndex(lessDimsIndices, forShape: lessDimsBroadcastedShape)
+                    return lessDimsScalars[lessDimsBufferIndex]
+                }()
+                let moreDimsVal = {
+                    var moreDimsIndices = indices
+                    for axis in moreDimsOneAxes {
+                        moreDimsIndices[axis] = 0
+                    }
+                    let moreDimsBufferIndex = Shape.ravelBufferIndexFromMultiIndex(moreDimsIndices, forShape: moreDimsArray.shape)
+                    return moreDimsScalars[moreDimsBufferIndex]
+                }()
+                
+                buffer[bufferIndex] = try op(lessDimsVal, moreDimsVal)
+            }
+            initializedCount = finalShapeCount
+        }
+
+        return ShapedArray(shape: finalShape, scalars: finalScalars)
     }
 }
 

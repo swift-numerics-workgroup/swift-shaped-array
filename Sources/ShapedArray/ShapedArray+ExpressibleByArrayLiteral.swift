@@ -65,4 +65,3 @@ extension ShapedArray: ExpressibleByArrayLiteral {
         self = .init(stacking: elements.map { $0.shapedArray })
     }
 }
-

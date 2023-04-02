@@ -175,4 +175,63 @@ final class ShapedArrayTests: XCTestCase {
         XCTAssertEqual(b, [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6])
         XCTAssertEqual(b.shape, [18])
     }
+
+    func testStridesForShape() {
+        XCTAssertEqual(Shape.strides(forShape: []), [])
+        XCTAssertEqual(Shape.strides(forShape: [1]), [1])
+        XCTAssertEqual(Shape.strides(forShape: [1, 2, 3, 4]), [24, 12, 4, 1])
+        XCTAssertEqual(Shape.strides(forShape: [9, 8, 7, 6]), [336, 42, 6, 1])
+    }
+
+    func testUnravelBufferIndex() throws {
+        XCTAssertEqual(try Shape.unravelBufferIndex(0, forShape: [1]), [0])
+        XCTAssertEqual(try Shape.unravelBufferIndex(0, forShape: [10, 10]), [0, 0])
+        XCTAssertEqual(try Shape.unravelBufferIndex(10, forShape: [20]), [10])
+        XCTAssertEqual(try Shape.unravelBufferIndex(1621, forShape: [6, 7, 8, 9]), [3, 1, 4, 1])
+        XCTAssertEqual(try Shape.unravelBufferIndex(4321, forShape: [10, 7, 9, 11]), [6, 1, 5, 9])
+        XCTAssertThrowsError(try Shape.unravelBufferIndex(2, forShape: [1])) { error in
+            guard case ShapedArrayError.indexOutOfBounds(let bufferIndex, let shape) = error else {
+                return XCTFail()
+            }
+
+            XCTAssertEqual(bufferIndex, 2)
+            XCTAssertEqual(shape, [1])
+        }
+        XCTAssertThrowsError(try Shape.unravelBufferIndex(100, forShape: [10, 10])) { error in
+            guard case ShapedArrayError.indexOutOfBounds(let bufferIndex, let shape) = error else {
+                return XCTFail()
+            }
+
+            XCTAssertEqual(bufferIndex, 100)
+            XCTAssertEqual(shape, [10, 10])
+        }
+    }
+
+    func testRavelBufferIndexFromMultiIndex() {
+        XCTAssertEqual(Shape.ravelBufferIndexFromMultiIndex([0], forShape: [1]), 0)
+        XCTAssertEqual(Shape.ravelBufferIndexFromMultiIndex([0, 0], forShape: [10, 10]), 0)
+        XCTAssertEqual(Shape.ravelBufferIndexFromMultiIndex([3, 1, 4, 1], forShape: [6, 7, 8, 9]), 1621)
+        XCTAssertEqual(Shape.ravelBufferIndexFromMultiIndex([6, 1, 5, 9], forShape: [10, 7, 9, 11]), 4321)
+    }
+
+    func testBroadcastingOp() throws {
+        var x = ShapedArray<Float>(
+            shape: [4, 1],
+            scalars: Array(stride(from: 0, to: 40, by: 10)))
+        var y = ShapedArray<Float>(
+            shape: [3],
+            scalars: Array(stride(from: 0, to: 3, by: 1)))
+        
+        XCTAssertEqual(try x.broadcastingOp(with: y, +).scalars, [0.0, 1.0, 2.0, 10.0, 11.0, 12.0, 20.0, 21.0, 22.0, 30.0, 31.0, 32.0])
+        XCTAssertEqual(try x.broadcastingOp(with: y, *).scalars, [0.0, 0.0, 0.0, 0.0, 10.0, 20.0, 0.0, 20.0, 40.0, 0.0, 30.0, 60.0])
+
+        x = ShapedArray<Float>(
+            shape: [3, 1, 5],
+            scalars: Array(stride(from: 0, to: 15, by: 1)))
+        y = ShapedArray<Float>(
+            shape: [5, 5],
+            scalars: Array(stride(from: 0, to: 25, by: 1)))
+        
+        XCTAssertEqual(try x.broadcastingOp(with: y, +).scalars, [0.0, 2.0, 4.0, 6.0, 8.0, 5.0, 7.0, 9.0, 11.0, 13.0, 10.0, 12.0, 14.0, 16.0, 18.0, 15.0, 17.0, 19.0, 21.0, 23.0, 20.0, 22.0, 24.0, 26.0, 28.0, 5.0, 7.0, 9.0, 11.0, 13.0, 10.0, 12.0, 14.0, 16.0, 18.0, 15.0, 17.0, 19.0, 21.0, 23.0, 20.0, 22.0, 24.0, 26.0, 28.0, 25.0, 27.0, 29.0, 31.0, 33.0, 10.0, 12.0, 14.0, 16.0, 18.0, 15.0, 17.0, 19.0, 21.0, 23.0, 20.0, 22.0, 24.0, 26.0, 28.0, 25.0, 27.0, 29.0, 31.0, 33.0, 30.0, 32.0, 34.0, 36.0, 38.0])
+    }
 }
