@@ -19,10 +19,10 @@
 public struct ShapedArray<Scalar>: _ShapedArrayProtocol {
     /// Contiguous memory storing scalars.
     internal var buffer: [Scalar]
-    
+
     /// The dimensions of the array.
     public private(set) var shape: [Int]
-    
+
     /// Creates a `ShapedArray` from a `ShapedArrayBuffer` and a shape.
     internal init(buffer: __owned [Scalar], shape: __owned [Int]) {
         precondition(
@@ -38,7 +38,7 @@ extension ShapedArray {
     public var rank: Int {
         return shape.count
     }
-    
+
     /// The total number of scalars in the array.
     public var scalarCount: Int {
         return buffer.count
@@ -60,19 +60,19 @@ extension ShapedArray {
             .0
             .reversed()
     }
-    
+
     /// Creates a `ShapedArray` with the same shape and scalars as the specified instance.
     public init(_ other: ShapedArray) {
         self.init(buffer: other.buffer, shape: other.shape)
     }
-    
+
     /// Creates a `ShapedArray` with the specified shape and contiguous scalars in row-major order.
     /// - Precondition: The number of scalars must equal the product of the dimensions of the shape.
     public init(shape: __owned [Int], scalars: __owned [Scalar]) {
         precondition(shape.reduce(1, *) == scalars.count, "Scalar count mismatch. Reduced shape=\(shape.reduce(1, *)); scalars.count=\(scalars.count)")
         self.init(buffer: scalars, shape: shape)
     }
-    
+
     /// Creates a `ShapedArray` with the specified shape and sequence of scalars in row-major order.
     /// - Precondition: The number of scalars must equal the product of the dimensions of the shape.
     public init<S: Sequence>(shape: __owned [Int], scalars: __shared S) where S.Element == Scalar {
@@ -83,12 +83,12 @@ extension ShapedArray {
             "The sequence has fewer elements than needed by the shape.")
         self.init(buffer: buffer, shape: shape)
     }
-    
+
     /// Creates a `ShapedArray` from a scalar value.
     public init(_ scalar: __owned Scalar) {
         self.init(buffer: [scalar], shape: [])
     }
-    
+
     /// Creates a `ShapedArray` with the specified shape and a single, repeated scalar value.
     /// - Parameters:
     ///   - repeatedValue: The scalar value to repeat.
@@ -104,19 +104,19 @@ extension ShapedArray: RandomAccessCollection, MutableCollection {
     public typealias Index = Int
     public typealias Element = ShapedArraySlice<Scalar>
     public typealias SubSequence = ShapedArraySlice<Scalar>
-    
+
     public var indices: Range<Int> {
         return 0..<count
     }
-    
+
     public var startIndex: Int {
         return 0
     }
-    
+
     public var endIndex: Int {
         return count
     }
-    
+
     /// Access the element array specified by an index in the leading dimension.
     /// - Parameter index: Index of the element array.
     public subscript(index: Int) -> Element {
@@ -140,7 +140,7 @@ extension ShapedArray: RandomAccessCollection, MutableCollection {
             }
         }
     }
-    
+
     /// Access the subarray specified by a contiguous range of indices.
     /// - Parameter bounds: Contiguous range of indices.
     public subscript(bounds: Range<Int>) -> SubSequence {
@@ -182,7 +182,7 @@ extension ShapedArray {
     ) rethrows -> Result {
         return try buffer.withUnsafeBufferPointer { ptr in try body(ptr) }
     }
-    
+
     /// Calls the given closure with a pointer to the array’s mutable contiguous storage.
     /// - Parameter body: A closure with an `UnsafeMutableBufferPointer` parameter that points to
     ///   the contiguous storage for the array. If no such storage exists, it is created. If body
@@ -258,14 +258,14 @@ extension ShapedArray: Codable where Scalar: Codable {
         case shape
         case scalars
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let shape = try container.decode([Int].self, forKey: .shape)
         let scalars = try container.decode([Scalar].self, forKey: .scalars)
         self.init(shape: shape, scalars: scalars)
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(shape, forKey: .shape)

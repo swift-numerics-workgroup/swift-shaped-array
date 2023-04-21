@@ -14,6 +14,8 @@
 // limitations under the License.
 
 extension ShapedArray {
+
+    @inlinable
     public func reshaped(to newShape: [Int]) -> ShapedArray {
         let shape = {
             if newShape.contains(-1) {
@@ -35,10 +37,12 @@ extension ShapedArray {
         return .init(shape: shape, scalars: self.scalars)
     }
 
+    @inlinable
     public func reshaped(to newShape: Int...) -> ShapedArray {
         self.reshaped(to: newShape)
     }
 
+    @inlinable
     public func reshaped<T>(like other: ShapedArray<T>) -> ShapedArray {
         self.reshaped(to: other.shape)
     }
@@ -49,51 +53,113 @@ extension ShapedArray {
         self.reshaped(to: -1)
     }
 
+    // helper data structure for subarray generation
+    @usableFromInline
+    internal struct SubarrayIndices {
+        @usableFromInline
+        let start: [Int]
+        @usableFromInline
+        let end: [Int]
+    }
 
-    @inlinable
-    func split(numSplits: Int, alongAxis axis: Int = 0) -> [ShapedArray] {
-        var sizes = [Int]()
-        for _ in 0..<numSplits {
-            sizes.append(self.shape[axis]/numSplits)
+    // helper function for subarray indices generation
+    /// takes a shape for the original array, a shape for the subarray, 
+    /// and an axis on which the original array would be divided 
+    /// and returns an array of start and end indices for each subarray
+
+    @usableFromInline
+    internal func _calculateSubarrayIndices(shape: [Int], subarrayShape: [Int], axis: Int) -> [SubarrayIndices] {
+        let numberOfSubarrays = shape[axis] / subarrayShape[axis]
+        
+        var subarrays = [SubarrayIndices]()
+        
+        for i in 0..<numberOfSubarrays {
+            var startIndices = [Int](repeating: 0, count: shape.count)
+            var endIndices = shape
+            
+            startIndices[axis] = i * subarrayShape[axis]
+            endIndices[axis] = startIndices[axis] + subarrayShape[axis]
+            
+            subarrays.append(SubarrayIndices(start: startIndices, end: endIndices))
         }
-        return split(sizes: sizes, alongAxis: axis)
+        
+        return subarrays
+    }
+
+    // helper function for subarray indices generation
+    /// takes a start and end index for each dimension and returns all the n-dim indices in between
+    @usableFromInline
+    internal func _generateIndices(start: [Int], end: [Int], currentIndex: [Int] = [], depth: Int = 0) -> [[Int]] {
+        if depth == start.count {
+            return [currentIndex]
+        }
+        
+        var indices = [[Int]]()
+        
+        for i in start[depth]..<end[depth] {
+            let newIndex = currentIndex + [i]
+            let subIndices = _generateIndices(start: start, end: end, currentIndex: newIndex, depth: depth + 1)
+            indices += subIndices
+        }
+        return indices
+    }
+
+    // helper function for subarray indices generation
+    /// takes a shape, strides, and n-dim indices and returns the linear index
+    @usableFromInline
+    internal func _calculateLinearIndex(shape: [Int], strides: [Int], indices: [Int]) -> Int {
+      var linearIndex = 0
+        for i in 0..<shape.count {
+            let dimSize = shape[i]
+            let stride = strides[i]
+            let index = indices[i]
+            if index >= dimSize {
+                fatalError("Index out of bounds")
+            }
+            linearIndex += stride * index
+        }
+    return linearIndex
     }
 
 
+    /// Splits the ShapedArray into multiple subarrays along the given axis.
+    /// - Parameters:
+    ///   - count: The number of subarrays to return.
+    ///  - axis: The axis along which to split the ShapedArray. Negative values wrap around.
+    /// - Returns: An array of ShapedArrays.
+    /// - Precondition: `count` must evenly divide the size of the ShapedArray along the given axis.
+    /// - Precondition: `axis` must be in the range `[-rank, rank)`.
     @inlinable
-    func split(sizes: [Int], alongAxis axis: Int = 0) -> [ShapedArray] {
+    public func split(count: Int, alongAxis axis: Int = 0) -> [ShapedArray] {
         ensureValid(axis: axis)
         let axis = axis < 0 ? axis + self.rank : axis
 
-        let lengthAfterAxis = self.stride[axis]
-        let lengthAtAxis = axis == 0 ? self.stride.reduce(1, *) : self.stride[axis - 1]
+        let newShape = self.shape.enumerated().map { $0.0 == axis ? $0.1 / count : $0.1 }
+        let scalarsPerArray = newShape.reduce(1, *)
+        
+        // Generate the n-dim start and end indices for each subarray
+        let indices = _calculateSubarrayIndices(shape: self.shape, subarrayShape: newShape, axis: axis)
+        
+        let newArrays = (0..<count).map { i -> ShapedArray in
 
-        let newShape = self.shape.enumerated().filter { $0.0 != axis }.map { $0.1 }
+            // Generate all the n-dim indices for each subarray using the start and end indices
+            let allIndices = _generateIndices(start: indices[i].start, end: indices[i].end)
 
-        var sizesAccumulated = [0] + sizes
-        for i in 1..<sizesAccumulated.count {
-            sizesAccumulated[i] += sizesAccumulated[i-1]
-        }
-
-        let newArrays = sizes.enumerated().map { (i, size) in
-            let scalarsPerArray = size * newShape.reduce(1, *)
-            return Array<Scalar>(unsafeUninitializedCapacity: scalarsPerArray) { buffer, initializedCount in
+            let scalars = Array<Scalar>(unsafeUninitializedCapacity: scalarsPerArray) { buffer, initializedCount in
                 for j in 0..<scalarsPerArray {
-                    let mod = j % lengthAfterAxis
-                    let finishedRows = j / lengthAfterAxis
-                    let arrayOffset = sizesAccumulated[i] * lengthAfterAxis
-                    let skipAxisLength = finishedRows * lengthAtAxis
+                    // Calculate the linear index for each n-dim index
+                    let index = _calculateLinearIndex(shape: self.shape, strides: self.stride, indices: allIndices[j])
 
-                    let value = self.scalars[mod + arrayOffset + skipAxisLength]
+                    let value = self.scalars[index]
                     buffer[j] = value
                 }
                 initializedCount = scalarsPerArray
             }
+            return ShapedArray(shape: newShape, scalars: scalars)
         }
 
-        return newArrays.map { ShapedArray(shape: newShape, scalars: $0) }
+        return newArrays
     }
-
 
 
     /// Unpacks the given dimension of a rank-`R` ShapedArray into multiple rank-`(R-1)` ShapedArrays.
@@ -117,11 +183,78 @@ extension ShapedArray {
     /// - Precondition: `axis` must be in the range `[-rank, rank)`, where `rank` is the rank of
     ///   the provided ShapedArrays.
     ///
+
+
     /// - Returns: Array containing the unstacked ShapedArrays.
     @inlinable
     public func unstacked(alongAxis axis: Int = 0) -> [ShapedArray] {
-        return self.split(numSplits: self.shape[axis], alongAxis: axis)
+        ensureValid(axis: axis)
+        let axis = axis < 0 ? axis + self.rank : axis
+        let numberOfArrays = self.shape[axis]
+
+        let lengthAfterAxis = self.stride[axis]
+        let lengthAtAxis = axis == 0 ? self.stride.reduce(1, *) : self.stride[axis - 1]
+        let newShape = self.shape.enumerated().filter { $0.0 != axis }.map { $0.1 }
+        let scalarsPerArray = newShape.reduce(1, *)
+
+        let newArrays = (0..<numberOfArrays).map { i in
+            Array<Scalar>(unsafeUninitializedCapacity: scalarsPerArray) { buffer, initializedCount in
+                for j in 0..<scalarsPerArray {
+                    let mod = j % lengthAfterAxis
+                    let finishedRows = j / lengthAfterAxis
+                    let arrayOffset = i * lengthAfterAxis
+                    let skipAxisLength = finishedRows * lengthAtAxis
+
+                    let value = self.scalars[mod + arrayOffset + skipAxisLength]
+                    buffer[j] = value
+                }
+                initializedCount = scalarsPerArray
+            }
+        }
+
+        return newArrays.map { ShapedArray(shape: newShape, scalars: $0) }
     }
+
+    @inlinable
+    public func expandingShape(at axes: [Int]) -> ShapedArray {
+        var resultShape = self.shape
+        for i in axes {
+            var dim = i
+            if dim < 0 { dim += resultShape.count + 1 }
+            resultShape.insert(1, at: dim)
+        }
+        return self.reshaped(to: resultShape)
+    }
+
+    @inlinable
+    public func expandingShape(at axes: Int...) -> ShapedArray {
+        return self.expandingShape(at: axes)
+    }
+
+    @inlinable
+    public func rankLifted() -> ShapedArray {
+        return self.expandingShape(at: 0)
+    }
+    
+    /// Removes the specified dimensions of size 1 from the shape of a tensor. If no dimensions are
+    /// specified, then all dimensions of size 1 will be removed.
+    @inlinable
+    public func squeezingShape(at axes: [Int]) -> ShapedArray {
+        var resultShape = self.shape
+        for i in 0..<shape.count {
+            if axes.contains(i) || (axes.isEmpty && shape[i] == 1) {
+                precondition(shape[i] == 1, "Can't squeeze axis \(i) since its size is not 1")
+                resultShape.remove(at: i)
+            }
+        }
+        return self.reshaped(to: resultShape)
+    }
+
+    @inlinable
+    public func squeezingShape(at axes: Int...) -> ShapedArray {
+        return self.squeezingShape(at: axes)
+    }
+
 }
 
 //===------------------------------------------------------------------------------------------===//

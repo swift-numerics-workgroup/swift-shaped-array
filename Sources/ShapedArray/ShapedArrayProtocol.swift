@@ -318,3 +318,14 @@ extension _ShapedArrayProtocol where Scalar: Equatable {
         }
     }
 }
+
+extension _ShapedArrayProtocol where Scalar: Comparable {
+    internal func _isLess(than other: Self) -> Bool {
+        return shape == other.shape
+        && withUnsafeBufferPointer { selfBuf in
+            other.withUnsafeBufferPointer { otherBuf in
+                selfBuf.lexicographicallyPrecedes(otherBuf)
+            }
+        }
+    }
+}
